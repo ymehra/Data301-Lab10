@@ -4,7 +4,7 @@ import re
 import math
 
 # import ratings
-ratingsFile = "/home/dekhtyar/data/jester-data-1.csv"
+ratingsFile = "jester-data-1.csv"
 
 ## constants
 NUM_USERS = 24983   ## number of users in the dataset
@@ -39,21 +39,36 @@ def load_ratings():
         rawRatings = np.asarray(rawRatingsList)
 
 
+# Collaborative predictions
+
 # mean utility of a joke for all users who rated it
-def mean_utility(person, jokeId):
+def coll_average(person, jokeId):
     # get all ratings for jokeId
-    ratings = rawRatings[:, jokeId-1]
+    ratings = rawRatings[:][jokeId-1]
+    count = 0
 
     for i in range(ratings.shape[0]):
-        if ratings[i] != 99:
+        # if valid rating and not person in question's rating
+        if ratings[i] != 99 and i != person+1:
             rSum += ratings[i]
             count += 1
 
     return rSum/count
 
-# Collaborative predictions
-
 # Item-based predictions
+
+# avg rating a user gave
+def item_average(person, jokeId):
+    # get all ratings from this user
+    user = rawRatings[person-1]
+    count = 0
+
+    for i in range(user.shape[0]):
+        if user[i] != 99:
+            rSum += user[i]
+            count += 1
+
+    return rSum / count
 
 # Nearest Neighbor Collaborative predictions
 
