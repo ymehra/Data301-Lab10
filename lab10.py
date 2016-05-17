@@ -4,7 +4,7 @@ import re
 import math
 
 # import ratings
-ratingsFile = "/home/dekhtyar/data/jester-data-1.csv"
+ratingsFile = "jester-data-1.csv"
 
 ## constants
 NUM_USERS = 24983   ## number of users in the dataset
@@ -58,4 +58,3 @@ def mean_utility(person, jokeId):
 # Nearest Neighbor Collaborative predictions
 
 # Nearest Neighbor Item-based predictions
-
