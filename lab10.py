@@ -55,6 +55,10 @@ def coll_average(person, jokeId):
 
     return rSum/count
 
+def coll_weighted_sum(person, jokeID):
+
+    #
+
 # Item-based predictions
 
 # avg rating a user gave
