@@ -59,9 +59,6 @@ def cosine_sim(ratings1, ratings2):
 
     return float(xySum)/float(xy)
 
-
-
-
 # Collaborative predictions
 
 # mean utility of a joke for all users who rated it
@@ -108,6 +105,20 @@ def coll_weighted_sum(person, jokeID):
 
 
 
+def coll_adjusted_sum(person, jokeID):
+    #YASH IS WORKING ON THIS
+    userAvg = item_average(person, jokeID)
+    k = computeK(person, jokeID)
+    total = 0
+
+    for user in range(rawRatings.shape[0]):
+        if (user != person):
+            sim = cosine_sim(rawRatings[person], rawRatings[user])
+
+        total += sim * (rawRatings[user ,jokeID] - userAvg)
+
+    adjusted = userAvg + k + total
+    return adjusted
 # Item-based predictions
 
 # avg rating a user gave
@@ -161,4 +172,6 @@ def item_adjusted_sum(person, jokeId):
 # Nearest Neighbor Item-based predictions
 
 userActivity, rawRatings = load_ratings()
-print (coll_average(1, 1))
+print (coll_average(2, 1))
+print (rawRatings[2])
+print (coll_adjusted_sum(2,20))
