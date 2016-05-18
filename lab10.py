@@ -126,22 +126,35 @@ def item_average(person, jokeId):
 
     return rSum / count
 
-def item_weighted_sum(person, jokeId):
-    k = 0.0
-    absSimSum = 0.0
+
+def computeOtherK(person, jokeId):
     simSum = 0.0
+    jokes = np.hsplit(rawRatings, rawRatings.shape[1])
 
-    for joke in range(rawRatings.shape[1]):
+    for joke in range(jokes.shape[0]):
         if joke != jokeId - 1:
-            absSimSum += abs(cosine_sim(rawRatings[jokeId - 1],
-                                     rawRatings[joke]))
-            simSum += cosine_sim(rawRatings[jokeId - 1],
-                        rawRatings[joke]) * \
-                        rawRatings[person-1, joke]
+            simSum += abs(cosine_sim(jokes[jokeId - 1],
+                                        jokes[joke]))
 
-    k = 1 / absSimSum
+    return 1/simSum
+
+def item_weighted_sum(person, jokeId):
+    simSum = 0.0
+    jokes = np.hsplit(rawRatings, rawRatings.shape[1])
+    k = computeOtherK(person, jokeId)
+
+    for joke in range(jokes.shape[0]):
+        if joke != jokeId - 1:
+            simSum += cosine_sim(jokes[jokeId - 1],
+                        jokes[joke]) * \
+                        jokes[person-1, joke]
 
     return simSum * k
+
+def item_adjusted_sum(person, jokeId):
+    mean = coll_average(person, jokeId)
+
+
 
 # Nearest Neighbor Collaborative predictions
 
