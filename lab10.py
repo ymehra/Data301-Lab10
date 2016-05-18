@@ -81,10 +81,32 @@ def coll_average(person, jokeId):
 
     return rSum/count
 
-# HI YASH
-def coll_weighted_sum(person, jokeID):
 
-    #hello sam
+def computeK(person, jokeID):
+    u_c = np.array(rawRatings[person])
+    others = []
+    for user in range(NUM_USERS):
+        if user != person:
+            others.append(np.array(rawRatings[user]))
+
+    total = 0
+    for oUser in others:
+        total += math.fabs(cosine_sim(u_c, oUser))
+
+    return 1 / total
+
+
+
+
+
+def coll_weighted_sum(person, jokeID):
+    u_c = rawRatings[person]
+    k = computeK(person, jokeID)
+    
+
+
+
+
 
 # Item-based predictions
 
