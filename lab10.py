@@ -165,7 +165,10 @@ def computeOtherK(person, jokeId):
 
 def item_weighted_sum(person, jokeId):
     simSum = 0.0
-    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    jokes = []
+    for col in range(rawRatings.shape[1]):
+        jokes.append(rawRatings[:,col])
+    jokes = np.asarray(jokes)
     k = computeOtherK(person, jokeId)
 
     for joke in range(jokes.shape[0]):
@@ -182,12 +185,14 @@ def item_adjusted_sum(person, jokeId):
     userAvg = coll_average(person, jokeId)
     k = computeOtherK(person, jokeId)
     total = 0.0
-    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
-
+    jokes = []
+    for col in range(rawRatings.shape[1]):
+        jokes.append(rawRatings[:,col])
+    jokes = np.asarray(jokes)
     for joke in range(jokes.shape[0]):
         if (joke != jokeId - 1):
-            sim = cosine_sim(jokes[jokeId - 1], jokes[joke])
-            total += sim * (rawRatings[person - 1, joke] - userAvg)
+            sim1 = cosine_sim(jokes[jokeId - 1], jokes[joke])
+            total += sim1 * (rawRatings[person - 1, joke] - userAvg)
 
     adjusted = userAvg + k * total
     return adjusted
@@ -199,12 +204,18 @@ def item_adjusted_sum(person, jokeId):
 # returns list of n nearest user IDs
 def nNN_users(n, person):
     sims = []
+    neighbors = [] # list of nearest user neighbor IDs and their similarities
     for user in range(rawRatings.shape[0]):
         if user != person - 1:
-            sims.append(cosine_sim(rawRatings[person - 1], rawRatings[user]))
+            sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
 
+    # elements are (sim, userID)
+    sims.sort()
 
+    for n in range(n):
+        neighbors.append(sims[n][1])
 
+    return neighbors
 
 # returns list of n nearest jokeIDs
 #def nNN_jokes(n):
@@ -214,7 +225,7 @@ def nNN_users(n, person):
 def nn_coll_average(person, jokeId):
     sum = 0
     N = 10
-    nearestNeighbors = nNN_users(N)
+    nearestNeighbors = nNN_users(N, person)
 
     for n in range(len(nearestNeighbors)):
         sum += rawRatings[nearestNeighbors[n], jokeId-1]
@@ -238,13 +249,14 @@ def nn_item_average(person, jokeId):
 
 
 userActivity, rawRatings = load_ratings()
-print (coll_average(2, 20))
-print (item_average(2, 20))
-print (coll_weighted_sum(2,20))
-print (coll_adjusted_sum(2,20))
-print (item_weighted_sum(3,20))
-print (item_adjusted_sum(3,20))
-
+#print (coll_average(2, 20))
+#print (item_average(2, 20))
+#print (coll_weighted_sum(2,20))
+#print (coll_adjusted_sum(2,20))
+#print (item_weighted_sum(2,20))
+#print (item_adjusted_sum(2,20))
+print (rawRatings[1, 19])
+print (nn_coll_average(2, 20))
 
 
 
