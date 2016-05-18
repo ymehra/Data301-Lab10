@@ -91,17 +91,23 @@ def coll_weighted_sum(person, jokeID):
 # avg rating a user gave
 def item_average(person, jokeId):
     # get all ratings from this user
-    user = rawRatings[person-1]
+    ratings = []
+    for joke in range(rawRatings.shape[1]):
+        ratings.append(rawRatings[person-1, joke])
+    rSum = 0
     count = 0
-
-    for i in range(user.shape[0]):
-        if user[i] != 99:
-            rSum += user[i]
+    ratings = np.asarray(ratings)
+    for i in range(ratings.shape[0]):
+        if ratings[i] != 99:
+            rSum += ratings[i]
             count += 1
 
     return rSum / count
 
 def item_weighted_sum(person, jokeId):
+    k = 0.0
+
+    for
 
 # Nearest Neighbor Collaborative predictions
 
