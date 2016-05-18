@@ -58,7 +58,7 @@ def coll_average(person, jokeId):
 # HI YASH
 def coll_weighted_sum(person, jokeID):
 
-    #
+    #hello sam
 
 # Item-based predictions
 
