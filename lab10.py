@@ -213,8 +213,9 @@ def nn_coll_average(person, jokeId):
 
     for n in range(len(nearestNeighbors)):
         sum += rawRatings[nearestNeighbors[n], jokeId-1]
-        
+
     return sum / N
+
 
 
 # Nearest Neighbor Item-based predictions
