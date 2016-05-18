@@ -201,6 +201,24 @@ def item_adjusted_sum(person, jokeId):
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 20))
 print (item_average(2, 20))
+print (coll_weighted_sum(2,20))
 print (coll_adjusted_sum(2,20))
 print (item_weighted_sum(3,20))
 print (item_adjusted_sum(3,20))
+
+
+def reserved_set():
+    users = np.random.choice(rawRatings.shape[0], 3, False)
+    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+
+    for i in range(len(users)):
+        print("Real rating: " + rawRatings[users[i], jokes[i]])
+        # Do we need to remove rating from rawRatings?
+        print("Collaborated mean utility: %.11f" % coll_average(users[i], jokes[i]))
+        print("Collaborated weighted sum: %.11f" % coll_weighted_sum(users[i], jokes[i]))
+        print("Collaborated adjusted weighted sum: %.11f" % coll_adjusted_sum(users[i], jokes[i]))
+        print("Item-based mean utility: %.11f" % item_average(users[i], jokes[i]))
+        print("Item-based weighted sum: %.11f" % item_weighted_sum(users[i], jokes[i]))
+        print("Item-based adjusted weighted sum: %.11f" % item_adjusted_sum(users[i], jokes[i]))
+
+
