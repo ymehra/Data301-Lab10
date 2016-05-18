@@ -100,7 +100,6 @@ def computeK(person, jokeID):
 
 
 def coll_weighted_sum(person, jokeID):
-    u_c = rawRatings[person]
     k = computeK(person, jokeID)
 
     simSum = 0
@@ -197,8 +196,13 @@ def item_adjusted_sum(person, jokeId):
 # Nearest Neighbor Collaborative predictions
 
 # returns list of n nearest user IDs
-def nNN_users(n):
-    # distance calculations
+def nNN_users(n, person):
+    sims = []
+    for user in range(rawRatings.shape[0]):
+        if user != person - 1:
+            sims.append(cosine_sim(rawRatings[person - 1], rawRatings[user]))
+
+
 
 
 # returns list of n nearest jokeIDs
