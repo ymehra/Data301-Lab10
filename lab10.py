@@ -123,7 +123,6 @@ def coll_adjusted_sum(person, jokeID):
     for user in range(rawRatings.shape[0]):
         if (user != person - 1):
             sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
-
             total += sim * (rawRatings[user ,jokeID - 1] - userAvg)
 
     adjusted = userAvg + k * total
@@ -175,18 +174,27 @@ def item_weighted_sum(person, jokeId):
     return simSum * k
 
 def item_adjusted_sum(person, jokeId):
-    mean = coll_average(person, jokeId)
 
+    userAvg = coll_average(person, jokeId)
+    k = computeOtherK(person, jokeId)
+    total = 0
+    sim = 0
+    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    for joke in range(jokes.shape[0]):
+        if (joke != jokeId - 1):
+            sim = cosine_sim(jokes[jokeId - 1], jokes[joke])
+            total += sim * (rawRatings[person - 1, joke] - userAvg)
 
+    adjusted = userAvg + k * total
+    return adjusted
 
 # Nearest Neighbor Collaborative predictions
 
 # Nearest Neighbor Item-based predictions
 
 userActivity, rawRatings = load_ratings()
-print (coll_average(2, 1))
-print (rawRatings[2])
+print (coll_average(2, 20))
+print (item_average(2, 20))
 print (coll_adjusted_sum(2,20))
-result = coll_weighted_sum(2, 20)
-print (result, "    ", result + item_average(2, 20))
-print (item_weighted_sum(2,20))
+print (item_weighted_sum(3,20))
+print (item_adjusted_sum(3,20))
