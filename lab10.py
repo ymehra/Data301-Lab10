@@ -173,5 +173,4 @@ def item_adjusted_sum(person, jokeId):
 
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 1))
-print (rawRatings[2])
 print (coll_adjusted_sum(2,20))
