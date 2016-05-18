@@ -106,8 +106,20 @@ def item_average(person, jokeId):
 
 def item_weighted_sum(person, jokeId):
     k = 0.0
+    absSimSum = 0.0
+    simSum = 0.0
 
-    for joke in range(rawRating)
+    for joke in range(rawRatings.shape[1]):
+        if joke != jokeId - 1:
+            absSimSum += abs(cosine_sim(rawRatings[jokeId - 1],
+                                     rawRatings[joke]))
+            simSum += cosine_sim(rawRatings[jokeId - 1],
+                        rawRatings[joke]) * \
+                        rawRatings[person-1, joke]
+
+    k = 1 / absSimSum
+
+    return simSum * k
 
 # Nearest Neighbor Collaborative predictions
 
