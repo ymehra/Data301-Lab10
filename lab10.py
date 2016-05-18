@@ -107,15 +107,18 @@ def coll_weighted_sum(person, jokeID):
 
 def coll_adjusted_sum(person, jokeID):
     #YASH IS WORKING ON THIS
+    userAvg = item_average(person, jokeID)
+    k = computeK(person, jokeID)
     total = 0
-    count = 0
-    for joke, rating in enumerate(rawRatings[person]):
-        if (joke != jokeID):
-            if(rating != 0):
-                total += rating
-                count += 1
-    userAvg = total/(count)
-    return userAvg
+
+    for user in range(rawRatings.shape[0]):
+        if (user != person):
+            sim = cosine_sim(rawRatings[person], rawRatings[user])
+
+        total += sim * (rawRatings[user ,jokeID] - userAvg)
+
+    adjusted = userAvg + k + total
+    return adjusted
 # Item-based predictions
 
 # avg rating a user gave
