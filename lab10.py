@@ -72,7 +72,7 @@ def coll_average(person, jokeId):
     ratings  = np.asarray(ratings)
     for i in range(ratings.shape[0]):
         # if valid rating and not person in question's rating
-        if ratings[i] != 99 and i != person+1:
+        if ratings[i] != 0 and i != person+1:
             rSum += ratings[i]
             count += 1
 
@@ -104,7 +104,7 @@ def item_average(person, jokeId):
     count = 0
     ratings = np.asarray(ratings)
     for i in range(ratings.shape[0]):
-        if ratings[i] != 99:
+        if ratings[i] != 0:
             rSum += ratings[i]
             count += 1
 
@@ -113,7 +113,7 @@ def item_average(person, jokeId):
 def item_weighted_sum(person, jokeId):
     k = 0.0
 
-    for
+    for joke in range(rawRating)
 
 # Nearest Neighbor Collaborative predictions
 
