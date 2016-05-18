@@ -207,6 +207,8 @@ print (item_weighted_sum(3,20))
 print (item_adjusted_sum(3,20))
 
 
+
+
 def reserved_set():
     users = np.random.choice(rawRatings.shape[0], 3, False)
     jokes = np.random.choice(rawRatings.shape[1], 3, False)
