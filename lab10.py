@@ -213,7 +213,7 @@ def nNN_users(n, person):
     sims.sort()
 
     for n in range(n):
-        neighbors.append(sims[n][1])
+        neighbors.append(sims[n])
 
     return neighbors
 
@@ -229,7 +229,7 @@ def nNN_jokes(n, jokeId):
     sims.sort()
 
     for n in range(n):
-        neighbors.append(sims[n][1])
+        neighbors.append(sims[n])
 
     return neighbors
 
@@ -240,9 +240,27 @@ def nn_coll_average(person, jokeId):
     nearestNeighbors = nNN_users(N, person)
 
     for n in range(len(nearestNeighbors)):
-        sum += rawRatings[nearestNeighbors[n], jokeId-1]
+        sum += rawRatings[nearestNeighbors[n][1], jokeId-1]
 
     return sum / N
+
+
+def nn_coll_weighted(person, jokeId):
+    simSum = 0
+    sum = 0
+    N = 10
+    nearestNeighbors = nNN_users(N, person)
+
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0] # computing K
+        sum += nearestNeighbors[n][0] * rawRatings[nearestNeighbors[n][1], jokeId - 1]
+
+    k = 1 / simSum
+
+    return k * sum
+
+
+
 
 
 
@@ -253,7 +271,7 @@ def nn_item_average(person, jokeId):
     nearestNeighbors = nNN_jokes(N, jokeId)
 
     for n in range(len(nearestNeighbors)):
-        sum += rawRatings[person-1, nearestNeighbors[n]]
+        sum += rawRatings[person-1, nearestNeighbors[n][1]]
 
     return sum / N
 
@@ -269,8 +287,8 @@ userActivity, rawRatings = load_ratings()
 #print (item_adjusted_sum(2,20))
 print (rawRatings[1, 19])
 #print (nn_coll_average(2, 20))
-print (nn_item_average(2, 20))
-
+#print (nn_item_average(2, 20))
+print (nn_coll_weighted(2, 20))
 
 def reserved_set():
     users = np.random.choice(rawRatings.shape[0], 3, False)
