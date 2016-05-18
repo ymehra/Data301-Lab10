@@ -196,7 +196,40 @@ def item_adjusted_sum(person, jokeId):
 
 # Nearest Neighbor Collaborative predictions
 
+# returns list of n nearest user IDs
+def nNN_users(n):
+    # distance calculations
+
+
+# returns list of n nearest jokeIDs
+def nNN_jokes(n):
+
+
+
+def nn_coll_average(person, jokeId):
+    sum = 0
+    N = 10
+    nearestNeighbors = nNN_users(N)
+
+    for n in range(len(nearestNeighbors)):
+        sum += rawRatings[nearestNeighbors[n], jokeId-1]
+        
+    return sum / N
+
+
 # Nearest Neighbor Item-based predictions
+def nn_item_average(person, jokeId):
+    sum = 0
+    N = 10
+    nearestNeighbors = nNN_jokes(N)
+
+    for n in range(len(nearestNeighbors)):
+        sum += rawRatings[person-1, nearestNeighbors[n]]
+
+    return sum / N
+
+
+
 
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 20))
