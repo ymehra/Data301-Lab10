@@ -41,6 +41,7 @@ def load_ratings():
 
         return userActivity, rawRatings
 
+
 def cosine_sim(ratings1, ratings2):
     xSqSum = 0.0
     for r in range(ratings1.shape[0]):
@@ -58,6 +59,8 @@ def cosine_sim(ratings1, ratings2):
         xySum += float(ratings1[r] * ratings2[r])
 
     return float(xySum)/float(xy)
+
+
 
 # Collaborative predictions
 
@@ -160,6 +163,7 @@ def computeOtherK(person, jokeId):
 
     return 1/simSum
 
+
 def item_weighted_sum(person, jokeId):
     simSum = 0.0
     jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
@@ -173,13 +177,15 @@ def item_weighted_sum(person, jokeId):
 
     return simSum * k
 
-def item_adjusted_sum(person, jokeId):
 
+
+def item_adjusted_sum(person, jokeId):
     userAvg = coll_average(person, jokeId)
     k = computeOtherK(person, jokeId)
-    total = 0
-    sim = 0
+    total = 0.0
+    sim = 0.0
     jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+
     for joke in range(jokes.shape[0]):
         if (joke != jokeId - 1):
             sim = cosine_sim(jokes[jokeId - 1], jokes[joke])
