@@ -55,6 +55,7 @@ def coll_average(person, jokeId):
 
     return rSum/count
 
+# HI YASH
 def coll_weighted_sum(person, jokeID):
 
     #
