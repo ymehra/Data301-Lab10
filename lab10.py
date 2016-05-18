@@ -59,9 +59,6 @@ def cosine_sim(ratings1, ratings2):
 
     return float(xySum)/float(xy)
 
-
-
-
 # Collaborative predictions
 
 # mean utility of a joke for all users who rated it
@@ -87,6 +84,7 @@ def coll_weighted_sum(person, jokeID):
     return person
 
 def coll_adjusted_sum(person, jokeID):
+    #YASH IS WORKING ON THIS
     total = 0
     for joke, rating in enumerate(rawRatings[person]):
         if (joke != jokeID):
