@@ -80,10 +80,10 @@ def coll_average(person, jokeId):
 
 
 def computeK(person, jokeID):
-    u_c = np.array(rawRatings[person])
+    u_c = np.array(rawRatings[person - 1])
     others = []
     for user in range(NUM_USERS):
-        if user != person:
+        if user != person - 1:
             others.append(np.array(rawRatings[user]))
 
     total = 0
@@ -110,14 +110,14 @@ def coll_adjusted_sum(person, jokeID):
     userAvg = item_average(person, jokeID)
     k = computeK(person, jokeID)
     total = 0
-
+    sim = 0
     for user in range(rawRatings.shape[0]):
-        if (user != person):
-            sim = cosine_sim(rawRatings[person], rawRatings[user])
+        if (user != person - 1):
+            sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
 
-        total += sim * (rawRatings[user ,jokeID] - userAvg)
+        total += sim * (rawRatings[user ,jokeID - 1] - userAvg)
 
-    adjusted = userAvg + k + total
+    adjusted = userAvg + k * total
     return adjusted
 # Item-based predictions
 
