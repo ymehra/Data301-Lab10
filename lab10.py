@@ -182,7 +182,6 @@ def item_adjusted_sum(person, jokeId):
     userAvg = coll_average(person, jokeId)
     k = computeOtherK(person, jokeId)
     total = 0.0
-    sim = 0.0
     jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
 
     for joke in range(jokes.shape[0]):
@@ -192,6 +191,8 @@ def item_adjusted_sum(person, jokeId):
 
     adjusted = userAvg + k * total
     return adjusted
+
+
 
 # Nearest Neighbor Collaborative predictions
 
@@ -206,7 +207,7 @@ def nNN_users(n, person):
 
 
 # returns list of n nearest jokeIDs
-def nNN_jokes(n):
+#def nNN_jokes(n):
 
 
 
