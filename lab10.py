@@ -245,6 +245,7 @@ userActivity, rawRatings = load_ratings()
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
 #print (coll_adjusted_sum(2,20))
+print (rawRatings[1][19])
 print (item_weighted_sum(2,20))
 print (item_adjusted_sum(2,20))
 
