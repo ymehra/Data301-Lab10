@@ -55,11 +55,19 @@ def coll_average(person, jokeId):
 
     return rSum/count
 
-# HI YASH
 def coll_weighted_sum(person, jokeID):
 
-    #hello sam
+    #something
+    return person
 
+def coll_adjusted_sum(person, jokeID):
+    total = 0
+    for joke, rating in enumerate(rawRatings[person]):
+        if (joke != jokeID):
+            total += rating
+    userAvg = total/(rawRatings.shape[1] - 1)
+    print (userAvg)
+    return userAvg
 # Item-based predictions
 
 # avg rating a user gave
@@ -80,4 +88,5 @@ def item_average(person, jokeId):
 # Nearest Neighbor Item-based predictions
 
 userActivity, rawRatings = load_ratings()
-print (coll_average(1, 1))
+print (coll_average(2, 1))
+print (coll_adjusted_sum(2,20))
