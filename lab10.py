@@ -34,7 +34,33 @@ def load_ratings():
         userActivity = np.asarray(userActivityList)
         rawRatings = np.asarray(rawRatingsList)
 
+        for row in range(rawRatings.shape[0]):
+            for col in range(rawRatings.shape[1]):
+                if rawRatings[row, col] == 99:
+                    rawRatings[row, col] = 0
+
         return userActivity, rawRatings
+
+def cosine_sim(ratings1, ratings2):
+    xSqSum = 0.0
+    for r in range(ratings1.shape[0]):
+        xSqSum += float(ratings1[r] ** 2)
+    xSqSum = xSqSum ** .5
+
+    ySqSum = 0.0
+    for r in range(ratings2.shape[0]):
+        ySqSum += float(ratings2[r] ** 2)
+    ySqSum = ySqSum ** .5
+
+    xy = xSqSum * ySqSum
+    xySum = 0.0
+    for r in range(ratings1.shape[0]):
+        xySum += float(ratings1[r] * ratings2[r])
+
+    return float(xySum)/float(xy)
+
+
+
 
 # Collaborative predictions
 
@@ -74,6 +100,8 @@ def item_average(person, jokeId):
             count += 1
 
     return rSum / count
+
+def item_weighted_sum(person, jokeId):
 
 # Nearest Neighbor Collaborative predictions
 
