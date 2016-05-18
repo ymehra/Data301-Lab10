@@ -93,12 +93,16 @@ def computeK(person, jokeID):
     for oUser in others:
         total += math.fabs(cosine_sim(u_c, oUser))
 
+    return 1 / total
+
+
+
 
 
 def coll_weighted_sum(person, jokeID):
     u_c = rawRatings[person]
     k = computeK(person, jokeID)
-
+    
 
 
 
