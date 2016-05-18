@@ -197,47 +197,94 @@ def item_adjusted_sum(person, jokeId):
     adjusted = userAvg + k * total
     return adjusted
 
+
+
 # Nearest Neighbor Collaborative predictions
 
 # returns list of n nearest user IDs
 def nNN_users(n, person):
     sims = []
+    neighbors = [] # list of nearest user neighbor IDs
     for user in range(rawRatings.shape[0]):
         if user != person - 1:
-            sims.append(cosine_sim(rawRatings[person - 1], rawRatings[user]))
+            sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
 
+    # elements are (sim, userID)
+    sims.sort()
 
+    for n in range(n):
+        neighbors.append(sims[n])
+
+    return neighbors
 
 
 # returns list of n nearest jokeIDs
-#def nNN_jokes(n):
+def nNN_jokes(n, jokeId):
+    neighbors = [] # list of nearest neighbor joke IDs
+    sims = []
+    for joke in range(rawRatings.shape[1]):
+        if joke != jokeId - 1:
+            sims.append((cosine_sim(rawRatings[:,jokeId - 1], rawRatings[:,joke]), joke))
 
+    sims.sort()
+
+    for n in range(n):
+        neighbors.append(sims[n])
+
+    return neighbors
 
 
 def nn_coll_average(person, jokeId):
-    sum = 0
+    sum = 0.0
     N = 10
-    nearestNeighbors = nNN_users(N)
+    nearestNeighbors = nNN_users(N, person)
 
     for n in range(len(nearestNeighbors)):
-        sum += rawRatings[nearestNeighbors[n], jokeId-1]
+        sum += rawRatings[nearestNeighbors[n][1], jokeId-1]
 
-    return sum / N
+    return float(sum) / float(N)
 
+
+def nn_coll_weighted(person, jokeId):
+    simSum = 0.0
+    sum = 0.0
+    N = 10
+    nearestNeighbors = nNN_users(N, person)
+
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0] # computing K
+        sum += nearestNeighbors[n][0] * rawRatings[nearestNeighbors[n][1], jokeId - 1]
+
+    k = 1.0 / float(simSum)
+
+    return float(k) * float(sum)
 
 
 # Nearest Neighbor Item-based predictions
 def nn_item_average(person, jokeId):
-    sum = 0
+    sum = 0.0
     N = 10
-    nearestNeighbors = nNN_jokes(N)
+    nearestNeighbors = nNN_jokes(N, jokeId)
 
     for n in range(len(nearestNeighbors)):
-        sum += rawRatings[person-1, nearestNeighbors[n]]
+        sum += rawRatings[person-1, nearestNeighbors[n][1]]
 
-    return sum / N
+    return float(sum) / float(N)
 
 
+def nn_item_weighted(person, jokeId):
+    simSum = 0.0
+    sum = 0.0
+    N = 10
+    nearestNeighbors = nNN_jokes(N, jokeId)
+
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0] # computing K
+        sum += nearestNeighbors[n][0] * rawRatings[person-1, nearestNeighbors[n][1]]
+
+    k = 1.0 / float(simSum)
+
+    return float(k) * float(sum)
 
 
 userActivity, rawRatings = load_ratings()
@@ -245,12 +292,13 @@ userActivity, rawRatings = load_ratings()
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
 #print (coll_adjusted_sum(2,20))
-print (rawRatings[1][19])
-print (item_weighted_sum(2,20))
-print (item_adjusted_sum(2,20))
-
-
-
+#print (item_weighted_sum(2,20))
+#print (item_adjusted_sum(2,20))
+print (rawRatings[30, 19])
+print (nn_coll_average(31, 20))
+print (nn_coll_weighted(31, 20))
+print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
+print (nn_item_weighted(31, 20))
 
 def reserved_set():
     users = np.random.choice(rawRatings.shape[0], 3, False)
