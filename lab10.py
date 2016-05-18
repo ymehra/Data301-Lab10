@@ -295,9 +295,9 @@ userActivity, rawRatings = load_ratings()
 #print (item_weighted_sum(2,20))
 #print (item_adjusted_sum(2,20))
 print (rawRatings[30, 19])
-#print (nn_coll_average(2, 20))
-print (nn_item_average(31, 20))
-#print (nn_coll_weighted(2, 20))
+print (nn_coll_average(31, 20))
+print (nn_coll_weighted(31, 20))
+print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
 print (nn_item_weighted(31, 20))
 
 def reserved_set():
