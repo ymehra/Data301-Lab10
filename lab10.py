@@ -119,6 +119,9 @@ def coll_adjusted_sum(person, jokeID):
 
     adjusted = userAvg + k * total
     return adjusted
+
+
+
 # Item-based predictions
 
 # avg rating a user gave
