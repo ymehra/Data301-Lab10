@@ -140,7 +140,7 @@ def item_average(person, jokeId):
 
 def computeOtherK(person, jokeId):
     simSum = 0.0
-    jokes = np.hsplit(rawRatings, rawRatings.shape[1])
+    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
 
     for joke in range(jokes.shape[0]):
         if joke != jokeId - 1:
@@ -151,14 +151,14 @@ def computeOtherK(person, jokeId):
 
 def item_weighted_sum(person, jokeId):
     simSum = 0.0
-    jokes = np.hsplit(rawRatings, rawRatings.shape[1])
+    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
     k = computeOtherK(person, jokeId)
 
     for joke in range(jokes.shape[0]):
         if joke != jokeId - 1:
             simSum += cosine_sim(jokes[jokeId - 1],
                         jokes[joke]) * \
-                        jokes[person-1, joke]
+                        rawRatings[person-1, joke]
 
     return simSum * k
 
@@ -174,3 +174,4 @@ def item_adjusted_sum(person, jokeId):
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 1))
 print (coll_adjusted_sum(2,20))
+print (item_weighted_sum(2,20))
