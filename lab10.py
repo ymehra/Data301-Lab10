@@ -78,7 +78,6 @@ def coll_average(person, jokeId):
 
     return rSum/count
 
-
 def computeK(person, jokeID):
     u_c = np.array(rawRatings[person - 1])
     others = []
@@ -92,10 +91,6 @@ def computeK(person, jokeID):
 
     return 1.0 / total
 
-
-
-
-
 def coll_weighted_sum(person, jokeID):
     u_c = rawRatings[person]
     k = computeK(person, jokeID)
@@ -108,11 +103,6 @@ def coll_weighted_sum(person, jokeID):
             simSum += sim * rawRatings[user, jokeID - 1]
 
     return k * simSum
-
-
-
-
-
 
 def coll_adjusted_sum(person, jokeID):
     #YASH IS WORKING ON THIS
@@ -192,6 +182,7 @@ def item_adjusted_sum(person, jokeId):
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 20))
 print (item_average(2, 20))
+print (coll_weighted_sum(2,20))
 print (coll_adjusted_sum(2,20))
-print (item_weighted_sum(3,20))
-print (item_adjusted_sum(3,20))
+print (item_weighted_sum(2,20))
+print (item_adjusted_sum(2,20))
