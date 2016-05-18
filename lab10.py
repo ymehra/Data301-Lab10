@@ -100,7 +100,6 @@ def computeK(person, jokeID):
 
 
 def coll_weighted_sum(person, jokeID):
-    u_c = rawRatings[person]
     k = computeK(person, jokeID)
 
     simSum = 0
@@ -196,11 +195,70 @@ def item_adjusted_sum(person, jokeId):
 
 # Nearest Neighbor Collaborative predictions
 
+# returns list of n nearest user IDs
+def nNN_users(n, person):
+    sims = []
+    for user in range(rawRatings.shape[0]):
+        if user != person - 1:
+            sims.append(cosine_sim(rawRatings[person - 1], rawRatings[user]))
+
+
+
+
+# returns list of n nearest jokeIDs
+def nNN_jokes(n):
+
+
+
+def nn_coll_average(person, jokeId):
+    sum = 0
+    N = 10
+    nearestNeighbors = nNN_users(N)
+
+    for n in range(len(nearestNeighbors)):
+        sum += rawRatings[nearestNeighbors[n], jokeId-1]
+
+    return sum / N
+
+
+
 # Nearest Neighbor Item-based predictions
+def nn_item_average(person, jokeId):
+    sum = 0
+    N = 10
+    nearestNeighbors = nNN_jokes(N)
+
+    for n in range(len(nearestNeighbors)):
+        sum += rawRatings[person-1, nearestNeighbors[n]]
+
+    return sum / N
+
+
+
 
 userActivity, rawRatings = load_ratings()
 print (coll_average(2, 20))
 print (item_average(2, 20))
+print (coll_weighted_sum(2,20))
 print (coll_adjusted_sum(2,20))
 print (item_weighted_sum(3,20))
 print (item_adjusted_sum(3,20))
+
+
+
+
+def reserved_set():
+    users = np.random.choice(rawRatings.shape[0], 3, False)
+    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+
+    for i in range(len(users)):
+        print("Real rating: " + rawRatings[users[i], jokes[i]])
+        # Do we need to remove rating from rawRatings?
+        print("Collaborated mean utility: %.11f" % coll_average(users[i], jokes[i]))
+        print("Collaborated weighted sum: %.11f" % coll_weighted_sum(users[i], jokes[i]))
+        print("Collaborated adjusted weighted sum: %.11f" % coll_adjusted_sum(users[i], jokes[i]))
+        print("Item-based mean utility: %.11f" % item_average(users[i], jokes[i]))
+        print("Item-based weighted sum: %.11f" % item_weighted_sum(users[i], jokes[i]))
+        print("Item-based adjusted weighted sum: %.11f" % item_adjusted_sum(users[i], jokes[i]))
+
+
