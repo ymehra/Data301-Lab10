@@ -259,6 +259,21 @@ def nn_coll_weighted(person, jokeId):
 
     return float(k) * float(sum)
 
+def nn_coll_adjusted(person, jokeId):
+    # YASH IS WORKING ON THIS
+    N = 10
+    sum = 0.0
+    simSum = 0.0
+    avg = nn_item_average(person, jokeId)
+    nearestNeighbors = nNN_users(N, person)
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0]  # computing K
+        sum += nearestNeighbors[n][0] * (rawRatings[nearestNeighbors[n][1], jokeId - 1] - avg)
+
+    k = 1.0 / float(simSum)
+    adjusted = avg + (k * sum)
+    return adjusted
+
 
 # Nearest Neighbor Item-based predictions
 def nn_item_average(person, jokeId):
@@ -287,6 +302,23 @@ def nn_item_weighted(person, jokeId):
     return float(k) * float(sum)
 
 
+def nn_item_adjusted(person, jokeId):
+    simSum = 0.0
+    sum = 0.0
+    N = 10
+    nearestNeighbors = nNN_jokes(N, jokeId)
+    avg = nn_coll_average(person, jokeId)
+
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0]  # computing K
+        sum += nearestNeighbors[n][0] * (rawRatings[person - 1, nearestNeighbors[n][1]] - avg)
+
+    k = 1.0 / float(simSum)
+    adjusted = avg + (k * sum)
+    return adjusted
+
+
+
 userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
@@ -294,11 +326,25 @@ userActivity, rawRatings = load_ratings()
 #print (coll_adjusted_sum(2,20))
 #print (item_weighted_sum(2,20))
 #print (item_adjusted_sum(2,20))
-print (rawRatings[30, 19])
-print (nn_coll_average(31, 20))
-print (nn_coll_weighted(31, 20))
-print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
-print (nn_item_weighted(31, 20))
+
+
+def nn_relation_tester(person, jokeId):
+
+    print("person: ", person, " jokeId: ", jokeId)
+    print("Actual Value: ",  rawRatings[person - 1, jokeId - 1])
+    print("Collaborative Average: ", nn_coll_average(person, jokeId))
+    print("Collaborative Weighted: ", nn_coll_weighted(person, jokeId))
+    print("Collaborative Adjusted Weighted: ", nn_coll_adjusted(person, jokeId))
+    print("Item Average: ", nn_item_average(person, jokeId))
+    print("Item Weighted: ", nn_item_weighted(person, jokeId))
+    print("Item Adjusted Weighted: ", nn_item_adjusted(person, jokeId))
+    print("\n")
+
+
+nn_relation_tester(32, 21)
+nn_relation_tester(37, 4)
+nn_relation_tester(72, 52)
+nn_relation_tester(102, 12)
 
 def reserved_set():
     users = np.random.choice(rawRatings.shape[0], 3, False)
