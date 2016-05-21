@@ -16,6 +16,8 @@ EPSILON = 0.0001    ## useful for assertions over floats
 
 rawRatingsTable = []  ## use rawRatings variable to store the NumPy array of
                  ## ratings from the data file
+userActivity = []
+rawRatings = []
 
 ### loading the array of ratings
 def load_ratings():
