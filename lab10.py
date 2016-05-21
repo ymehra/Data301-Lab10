@@ -472,7 +472,7 @@ def avgRatings():
 def plotSomething():
     avgs = avgRatings()
 
-    return plt.plot(avgs)
+    plt.plot(avgs)
 
 
 # RUN
