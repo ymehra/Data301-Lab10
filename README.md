@@ -11,6 +11,9 @@ Cloning the repo in to Jupiter
 2. git clone https://github.com/ymehra/Lab10
 3. Open it from the file viewer in jupyter.
 4. git config --global core.editor "vim" - sets the editor to use vim not nano do whatever you want.
+5. git config --global user.name "Your Name"                                                                                      
+6. git config --global user.email you@example.com
+
 To update from terminal in jupiter
 
 1. git commit
