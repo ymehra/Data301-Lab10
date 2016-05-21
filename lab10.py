@@ -42,23 +42,48 @@ def load_ratings():
         return userActivity, rawRatings
 
 
+## this will create the nparrays like dekhtyar said in lab - we can now use np.operations to speed it up
+def commonUsers(ratings1, ratings2):
+    ## length of shorter array
+    N = min (ratings1.size, ratings2.size)
+    rt1 = []
+    rt2 = []
+    for i in range(N):
+        if ratings1[i] != 99 and ratings2[i] != 99:
+            rt1.append(ratings1[i])
+            rt2.append(ratings2[i])
+
+    return np.array(rt1), np.array(rt2)
+
+
 def cosine_sim(ratings1, ratings2):
-    xSqSum = 0.0
-    for r in range(ratings1.shape[0]):
-        xSqSum += float(ratings1[r] ** 2)
+    r1, r2 = commonUsers(ratings1, ratings2)
+
+    xSqSum = float(np.sum(np.square(r1)))
     xSqSum = xSqSum ** .5
 
-    ySqSum = 0.0
-    for r in range(ratings2.shape[0]):
-        ySqSum += float(ratings2[r] ** 2)
+    ySqSum = float(np.sum(np.square(r2)))
     ySqSum = ySqSum ** .5
 
     xy = xSqSum * ySqSum
-    xySum = 0.0
-    for r in range(ratings1.shape[0]):
-        xySum += float(ratings1[r] * ratings2[r])
+    xySum = np.sum(r1 * r2)
 
     return float(xySum)/float(xy)
+
+
+def pearson_sim(ratings1, ratings2, avg):
+    r1, r2 = commonUsers(ratings1, ratings2)
+
+    x = r1 - avg
+    y = r2 - avg
+    xSq = np.square(x)
+    ySq = np.square(y)
+
+    numerator = float(np.sum(x * y))
+    denominator = float(np.sqrt(np.sum(xSq) * np.sum(ySq)))
+
+    return numerator / denominator
+
 
 
 
@@ -102,11 +127,12 @@ def computeK(person, jokeID):
 def coll_weighted_sum(person, jokeID):
     k = computeK(person, jokeID)
 
+    usrAvg = item_average(person, jokeID)
     simSum = 0
     for user in range(rawRatings.shape[0]):
         if user != person - 1:
-            sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
-
+            # sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
+            sim = pearson_sim(rawRatings[person - 1], rawRatings[user], usrAvg)
             simSum += sim * rawRatings[user, jokeID - 1]
 
     return k * simSum
@@ -171,11 +197,11 @@ def item_weighted_sum(person, jokeId):
     jokes = np.asarray(jokes)
     k = computeOtherK(person, jokeId)
 
+    jokeAvg = coll_average(person, jokeId)
     for joke in range(jokes.shape[0]):
         if joke != jokeId - 1:
-            simSum += cosine_sim(jokes[jokeId - 1],
-                        jokes[joke]) * \
-                        rawRatings[person-1, joke]
+            # simSum += cosine_sim(jokes[jokeId - 1], jokes[joke]) * rawRatings[person-1, joke]
+            simSum += pearson_sim(jokes[jokeId - 1], jokes[joke], jokeAvg) * rawRatings[person-1, joke]
 
     return simSum * k
 
@@ -202,12 +228,14 @@ def item_adjusted_sum(person, jokeId):
 # Nearest Neighbor Collaborative predictions
 
 # returns list of n nearest user IDs
-def nNN_users(n, person):
+def nNN_users(n, person, jokeId):
     sims = []
     neighbors = [] # list of nearest user neighbor IDs
+    avg = item_average(person, jokeId)
     for user in range(rawRatings.shape[0]):
         if user != person - 1:
-            sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
+            # sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
+            sims.append((pearson_sim(rawRatings[person - 1], rawRatings[user], avg), user))
 
     # elements are (sim, userID)
     sims.sort()
@@ -219,12 +247,14 @@ def nNN_users(n, person):
 
 
 # returns list of n nearest jokeIDs
-def nNN_jokes(n, jokeId):
+def nNN_jokes(n, person, jokeId):
     neighbors = [] # list of nearest neighbor joke IDs
     sims = []
+    avg = coll_average(person, jokeId)
     for joke in range(rawRatings.shape[1]):
         if joke != jokeId - 1:
-            sims.append((cosine_sim(rawRatings[:,jokeId - 1], rawRatings[:,joke]), joke))
+            # sims.append((cosine_sim(rawRatings[:,jokeId - 1], rawRatings[:,joke]), joke))
+            sims.append((pearson_sim(rawRatings[:, jokeId - 1], rawRatings[:, joke], avg), joke))
 
     sims.sort()
 
@@ -237,7 +267,7 @@ def nNN_jokes(n, jokeId):
 def nn_coll_average(person, jokeId):
     sum = 0.0
     N = 10
-    nearestNeighbors = nNN_users(N, person)
+    nearestNeighbors = nNN_users(N, person, jokeId)
 
     for n in range(len(nearestNeighbors)):
         sum += rawRatings[nearestNeighbors[n][1], jokeId-1]
@@ -249,7 +279,7 @@ def nn_coll_weighted(person, jokeId):
     simSum = 0.0
     sum = 0.0
     N = 10
-    nearestNeighbors = nNN_users(N, person)
+    nearestNeighbors = nNN_users(N, person, jokeId)
 
     for n in range(len(nearestNeighbors)):
         simSum += nearestNeighbors[n][0] # computing K
@@ -264,7 +294,7 @@ def nn_coll_weighted(person, jokeId):
 def nn_item_average(person, jokeId):
     sum = 0.0
     N = 10
-    nearestNeighbors = nNN_jokes(N, jokeId)
+    nearestNeighbors = nNN_jokes(N, person, jokeId)
 
     for n in range(len(nearestNeighbors)):
         sum += rawRatings[person-1, nearestNeighbors[n][1]]
@@ -276,7 +306,7 @@ def nn_item_weighted(person, jokeId):
     simSum = 0.0
     sum = 0.0
     N = 10
-    nearestNeighbors = nNN_jokes(N, jokeId)
+    nearestNeighbors = nNN_jokes(N, person, jokeId)
 
     for n in range(len(nearestNeighbors)):
         simSum += nearestNeighbors[n][0] # computing K
@@ -287,6 +317,110 @@ def nn_item_weighted(person, jokeId):
     return float(k) * float(sum)
 
 
+
+# just did basic error equation...can do Sum Squared, etc later if we want
+def find_error(predicted, rating):
+    return abs(predicted - rating)
+
+
+
+def reserved_set(ratingsCopy):
+    users = np.random.choice(rawRatings.shape[0], 3, False)
+    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+
+    # remove pairs from ratings matrix
+    for i in range(len(users)):
+        ratingsCopy[users[i], jokes[i]] = 0
+
+    for i in range(len(users)):
+        print("User ", users[i]+1, ", Joke ", jokes[i]+1)
+        print("Real rating: ", rawRatings[users[i], jokes[i]])
+        collAvg = coll_average(users[i], jokes[i])
+        collWeighted = coll_weighted_sum(users[i], jokes[i])
+        collAdj = coll_adjusted_sum(users[i], jokes[i])
+        nnCollAvg = nn_coll_average(users[i], jokes[i])
+        nnCollWeight = nn_coll_weighted(users[i], jokes[i])
+        #nnCollAdj
+        itemAvg = item_average(users[i], jokes[i])
+        itemWeighted = item_weighted_sum(users[i], jokes[i])
+        itemAdj = item_adjusted_sum(users[i], jokes[i])
+        nnItemAvg = nn_item_average(users[i], jokes[i])
+        nnItemWeight = nn_item_weighted(users[i], jokes[i])
+        #nnItemAdj
+
+        print("Collaborative mean utility error: %.11f" %
+              find_error(collAvg, actual))
+        print("Collaborative weighted sum error: %.11f" %
+              find_error(collWeighted, actual))
+        print("Collaborative adjusted weighted sum error: %.11f" %
+              find_error(collAdj, actual))
+        print("K Nearest Neighbors collaborative average error: %.11f" %
+              find_error(nnCollAvg, actual))
+        print("K Nearest Neighbors collaborative weighted sum error: %.11f" %
+              find_error(nnCollWeight, actual))
+        # print("K Nearest Neighbors collaborative adjusted weighted sum error: %.11f" %
+            # find_error(nnCollAdj, actual))
+        print("Item-based mean utility error: %.11f" %
+              find_error(itemAvg, actual))
+        print("Item-based weighted sum error: %.11f" %
+              find_error(itemWeighted, actual))
+        print("Item-based adjusted weighted sum error: %.11f" %
+              find_error(itemAdj, actual))
+        print("K Nearest Neighbors item-based average error: %.11f" %
+              find_error(nnItemAvg, actual))
+        print("K Nearest Neighbors item-based weighted sum error: %.11f" %
+              find_error(nnItemWeight, actual))
+        # print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
+            # find_error(nnItemAdj, actual))
+
+
+def all_but_one():
+    for i in range(rawRatings.shape[0]):
+        for j in range(rawRatings.shape[1]):
+            if rawRatings[i, j] != 0:
+                actual = rawRatings[i, j]
+                rawRatings[i, j] = 0
+                collAvg = coll_average(i + 1, j + 1)
+                collWeighted = coll_weighted_sum(i + 1, j + 1)
+                collAdj = coll_adjusted_sum(i + 1, j + 1)
+                nnCollAvg = nn_coll_average(i + 1, j + 1)
+                nnCollWeight = nn_coll_weighted(i + 1, j + 1)
+                #nnCollAdj
+                itemAvg = item_average(i + 1, j + 1)
+                itemWeighted = item_weighted_sum(i + 1, j + 1)
+                itemAdj = item_adjusted_sum(i + 1, j + 1)
+                nnItemAvg = nn_item_average(i + 1, j + 1)
+                nnItemWeight = nn_item_weighted(i + 1, j + 1)
+                #nnItemAdj
+                print("Collaborative mean utility error: %.11f" %
+                      find_error(collAvg, actual))
+                print("Collaborative weighted sum error: %.11f" %
+                      find_error(collWeighted, actual))
+                print("Collaborative adjusted weighted sum error: %.11f" %
+                      find_error(collAdj, actual))
+                print("K Nearest Neighbors collaborative average error: %.11f" %
+                      find_error(nnCollAvg, actual))
+                print("K Nearest Neighbors collaborative weighted sum error: %.11f" %
+                      find_error(nnCollWeight, actual))
+                #print("K Nearest Neighbors collaborative adjusted weighted sum error: %.11f" %
+                      #find_error(nnCollAdj, actual))
+                print("Item-based mean utility error: %.11f" %
+                      find_error(itemAvg, actual))
+                print("Item-based weighted sum error: %.11f" %
+                      find_error(itemWeighted, actual))
+                print("Item-based adjusted weighted sum error: %.11f" %
+                      find_error(itemAdj, actual))
+                print("K Nearest Neighbors item-based average error: %.11f" %
+                      find_error(nnItemAvg, actual))
+                print("K Nearest Neighbors item-based weighted sum error: %.11f" %
+                      find_error(nnItemWeight, actual))
+                #print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
+                      #find_error(nnItemAdj, actual))
+
+
+
+# RUN
+
 userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
@@ -294,24 +428,10 @@ userActivity, rawRatings = load_ratings()
 #print (coll_adjusted_sum(2,20))
 #print (item_weighted_sum(2,20))
 #print (item_adjusted_sum(2,20))
-print (rawRatings[30, 19])
-print (nn_coll_average(31, 20))
-print (nn_coll_weighted(31, 20))
-print (nn_item_average(12, 20)) # not sure why only 3 decimal points buttttttt
-print (nn_item_weighted(12, 20))
-
-def reserved_set():
-    users = np.random.choice(rawRatings.shape[0], 3, False)
-    jokes = np.random.choice(rawRatings.shape[1], 3, False)
-
-    for i in range(len(users)):
-        print("Real rating: " + rawRatings[users[i], jokes[i]])
-        # Do we need to remove rating from rawRatings?
-        print("Collaborated mean utility: %.11f" % coll_average(users[i], jokes[i]))
-        print("Collaborated weighted sum: %.11f" % coll_weighted_sum(users[i], jokes[i]))
-        print("Collaborated adjusted weighted sum: %.11f" % coll_adjusted_sum(users[i], jokes[i]))
-        print("Item-based mean utility: %.11f" % item_average(users[i], jokes[i]))
-        print("Item-based weighted sum: %.11f" % item_weighted_sum(users[i], jokes[i]))
-        print("Item-based adjusted weighted sum: %.11f" % item_adjusted_sum(users[i], jokes[i]))
-
-
+#print (rawRatings[30, 19])
+#print (nn_coll_average(31, 20))
+#print (nn_coll_weighted(31, 20))
+#print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
+#print (nn_item_weighted(31, 20))
+reserved_set(rawRatings)
+all_but_one()
