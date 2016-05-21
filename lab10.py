@@ -1,5 +1,7 @@
 #below are imports
 import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
 import re
 import math
 
@@ -14,6 +16,8 @@ EPSILON = 0.0001    ## useful for assertions over floats
 
 rawRatingsTable = []  ## use rawRatings variable to store the NumPy array of
                  ## ratings from the data file
+userActivity = []
+rawRatings = []
 
 ### loading the array of ratings
 def load_ratings():
@@ -544,10 +548,28 @@ def all_but_one():
                       #find_error(nnItemAdj, actual))
 
 
+# QUESTION 2
+
+# returns np array of avg ratings for each joke
+def avgRatings():
+    scores = []
+
+    for joke in range(rawRatings.shape[1]):
+        total = 0
+        count = 0
+        for user in range(rawRatings.shape[0]):
+            if rawRatings[user, joke]:
+                total += rawRatings[user, joke]
+                count += 1
+
+        scores.append(total/count)
+
+    return np.asarray(scores)
+
 
 # RUN
 
-userActivity, rawRatings = load_ratings()
+#userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
@@ -557,7 +579,8 @@ userActivity, rawRatings = load_ratings()
 #print (rawRatings[30, 19])
 #print (nn_coll_average(31, 20))
 #print (nn_coll_weighted(31, 20))
-#print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
+#print (nn_item_average(31, 20))
 #print (nn_item_weighted(31, 20))
-reserved_set(rawRatings)
-# all_but_one()
+#plot_data()
+#reserved_set(rawRatings)
+#all_but_one()
