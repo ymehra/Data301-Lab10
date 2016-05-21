@@ -2,6 +2,10 @@
 import numpy as np
 import re
 import math
+import matplotlib
+import matplotlib.pyplot as plt
+import seaborn
+
 
 # import ratings
 ratingsFile = "jester-data-1.csv"
@@ -447,11 +451,12 @@ def all_but_one():
                 #print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
                       #find_error(nnItemAdj, actual))
 
-
-
+#def plot_data():
+    #this will produce all visualizations
+    #plt.plot(ratings[0])
 # RUN
 
-userActivity, rawRatings = load_ratings()
+#userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
@@ -463,5 +468,6 @@ userActivity, rawRatings = load_ratings()
 #print (nn_coll_weighted(31, 20))
 #print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
 #print (nn_item_weighted(31, 20))
-reserved_set(rawRatings)
-all_but_one()
+#plot_data()
+#reserved_set(rawRatings)
+#all_but_one()
