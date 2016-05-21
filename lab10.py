@@ -349,6 +349,110 @@ def nn_item_adjusted(person, jokeId):
 
 
 
+
+# just did basic error equation...can do Sum Squared, etc later if we want
+def find_error(predicted, rating):
+    return abs(predicted - rating)
+
+
+
+def reserved_set(ratingsCopy):
+    users = np.random.choice(rawRatings.shape[0], 3, False)
+    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+
+    # remove pairs from ratings matrix
+    for i in range(len(users)):
+        ratingsCopy[users[i], jokes[i]] = 0
+
+    for i in range(len(users)):
+        print("User ", users[i]+1, ", Joke ", jokes[i]+1)
+        print("Real rating: ", rawRatings[users[i], jokes[i]])
+        collAvg = coll_average(users[i], jokes[i])
+        collWeighted = coll_weighted_sum(users[i], jokes[i])
+        collAdj = coll_adjusted_sum(users[i], jokes[i])
+        nnCollAvg = nn_coll_average(users[i], jokes[i])
+        nnCollWeight = nn_coll_weighted(users[i], jokes[i])
+        #nnCollAdj
+        itemAvg = item_average(users[i], jokes[i])
+        itemWeighted = item_weighted_sum(users[i], jokes[i])
+        itemAdj = item_adjusted_sum(users[i], jokes[i])
+        nnItemAvg = nn_item_average(users[i], jokes[i])
+        nnItemWeight = nn_item_weighted(users[i], jokes[i])
+        #nnItemAdj
+
+        print("Collaborative mean utility error: %.11f" %
+              find_error(collAvg, actual))
+        print("Collaborative weighted sum error: %.11f" %
+              find_error(collWeighted, actual))
+        print("Collaborative adjusted weighted sum error: %.11f" %
+              find_error(collAdj, actual))
+        print("K Nearest Neighbors collaborative average error: %.11f" %
+              find_error(nnCollAvg, actual))
+        print("K Nearest Neighbors collaborative weighted sum error: %.11f" %
+              find_error(nnCollWeight, actual))
+        # print("K Nearest Neighbors collaborative adjusted weighted sum error: %.11f" %
+            # find_error(nnCollAdj, actual))
+        print("Item-based mean utility error: %.11f" %
+              find_error(itemAvg, actual))
+        print("Item-based weighted sum error: %.11f" %
+              find_error(itemWeighted, actual))
+        print("Item-based adjusted weighted sum error: %.11f" %
+              find_error(itemAdj, actual))
+        print("K Nearest Neighbors item-based average error: %.11f" %
+              find_error(nnItemAvg, actual))
+        print("K Nearest Neighbors item-based weighted sum error: %.11f" %
+              find_error(nnItemWeight, actual))
+        # print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
+            # find_error(nnItemAdj, actual))
+
+
+def all_but_one():
+    for i in range(rawRatings.shape[0]):
+        for j in range(rawRatings.shape[1]):
+            if rawRatings[i, j] != 0:
+                actual = rawRatings[i, j]
+                rawRatings[i, j] = 0
+                collAvg = coll_average(i + 1, j + 1)
+                collWeighted = coll_weighted_sum(i + 1, j + 1)
+                collAdj = coll_adjusted_sum(i + 1, j + 1)
+                nnCollAvg = nn_coll_average(i + 1, j + 1)
+                nnCollWeight = nn_coll_weighted(i + 1, j + 1)
+                #nnCollAdj
+                itemAvg = item_average(i + 1, j + 1)
+                itemWeighted = item_weighted_sum(i + 1, j + 1)
+                itemAdj = item_adjusted_sum(i + 1, j + 1)
+                nnItemAvg = nn_item_average(i + 1, j + 1)
+                nnItemWeight = nn_item_weighted(i + 1, j + 1)
+                #nnItemAdj
+                print("Collaborative mean utility error: %.11f" %
+                      find_error(collAvg, actual))
+                print("Collaborative weighted sum error: %.11f" %
+                      find_error(collWeighted, actual))
+                print("Collaborative adjusted weighted sum error: %.11f" %
+                      find_error(collAdj, actual))
+                print("K Nearest Neighbors collaborative average error: %.11f" %
+                      find_error(nnCollAvg, actual))
+                print("K Nearest Neighbors collaborative weighted sum error: %.11f" %
+                      find_error(nnCollWeight, actual))
+                #print("K Nearest Neighbors collaborative adjusted weighted sum error: %.11f" %
+                      #find_error(nnCollAdj, actual))
+                print("Item-based mean utility error: %.11f" %
+                      find_error(itemAvg, actual))
+                print("Item-based weighted sum error: %.11f" %
+                      find_error(itemWeighted, actual))
+                print("Item-based adjusted weighted sum error: %.11f" %
+                      find_error(itemAdj, actual))
+                print("K Nearest Neighbors item-based average error: %.11f" %
+                      find_error(nnItemAvg, actual))
+                print("K Nearest Neighbors item-based weighted sum error: %.11f" %
+                      find_error(nnItemWeight, actual))
+                #print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
+                      #find_error(nnItemAdj, actual))
+
+
+
+# RUN
+
 userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
