@@ -356,10 +356,61 @@ def find_error(predicted, rating):
 
 
 
-def reserved_set(ratingsCopy):
-    users = np.random.choice(rawRatings.shape[0], 3, False)
-    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+## compute overall prediction accuracy using SSE
+def sse_overall(err_vectors) -> dict:
+    results = { vk : -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
 
+    for vk in err_vectors.keys():
+        if vk != "ACTUAL":
+            sqSum = float(np.sum(np.square(err_vectors[vk])))
+            results[vk] = sqSum
+
+    return results
+
+
+def avg_sse_overall(err_vectors) -> dict:
+    results = {vk: -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
+
+    for vk in err_vectors.keys():
+        # dont use actual rating
+        if vk != "ACTUAL":
+            sqSum = np.sum(np.square(err_vectors[vk]))
+            results[vk] = float(sqSum) / err_vectors[vk].size[0]
+
+    return results
+
+
+## computes the proportion of predictions accurate at threshold, epsilon
+def threshold_accuracy(err_vectors, epsilon) -> dict:
+    try:
+        assert epsilon > 0
+    except:
+        print("epsilon <= 0")
+
+    results = {vk: -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
+
+    for vk in err_vectors.keys():
+        if vk != "ACTUAL":
+            num_accurate = np.sum(np.where(err_vectors[vk] <= epsilon))
+            results[vk] = float(num_accurate) / err_vectors[vk].shape[0]
+
+    return results
+
+
+def sentiment_accuracy(err_vectors) -> dict:
+    raise NotImplementedError
+
+
+
+def reserved_set(ratingsCopy):
+    sample_size = 3
+    users = np.random.choice(rawRatings.shape[0], sample_size, False)
+    jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
+
+    ## need ot add kNN-IAWS and kNN-CAWS
+    vec_keys = ["ACTUAL", "CMU", "CWS", "CAWS","kNN-CAVG", "kNN-CWS", "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    # dict that holds computed value for each iteration to use in overall accuracy calcs
+    overall_err_vectors = { vk : np.empty((sample_size,)) for vk in vec_keys }
 
     for i in range(len(users)):
         print("User ", users[i]+1, ", Joke ", jokes[i]+1)
@@ -377,6 +428,26 @@ def reserved_set(ratingsCopy):
         nnItemAvg = nn_item_average(users[i], jokes[i])
         nnItemWeight = nn_item_weighted(users[i], jokes[i])
         #nnItemAdj
+
+        ## needed for sentiment accurracy
+        ## I am going to be changing these functions to compute errors external but i wanted yall to have some stuff to work with
+        overall_err_vectors["ACTUAL"][i] = rawRatings[users[i], jokes[i]]
+        ## update overall i-th val in vectors
+        overall_err_vectors["CMU"][i] = collAvg
+        overall_err_vectors["CWS"][i] = collWeighted
+        overall_err_vectors["CAWS"][i] = collAdj
+        overall_err_vectors["kNN-CAVG"][i] = nnCollAvg
+        overall_err_vectors["kNN-CWS"][i] = nnCollWeight
+        ## add for nnCollAdj
+        overall_err_vectors["IMU"][i] = itemAvg
+        overall_err_vectors["IWS"][i] = itemWeighted
+        overall_err_vectors["IAWS"][i] = itemAdj
+        overall_err_vectors["kNN-IAVG"][i] = nnCollAvg
+        overall_err_vectors["kNN-IWS"][i] = nnCollWeight
+        ## add for nnItemAdj
+
+
+
 
         print("Collaborative mean utility error: %.11f" %
               find_error(collAvg, actual))
@@ -403,8 +474,18 @@ def reserved_set(ratingsCopy):
         # print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
             # find_error(nnItemAdj, actual))
 
+    sse_results = sse_overall(overall_err_vectors)
+    print("SSE")
+    for key in overall_err_vectors.keys():
+        print(key + ":     ", sse_results[key])
+
 
 def all_but_one():
+
+    vec_keys = ["CMU", "CWS", "CAWS","kNN-CAVG", "kNN-CWS", "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    # dict that holds computed value for each iteration to use in overall accuracy calcs
+    overall_err_vectors = { vk : np.empty(rawRatings.shape[0]) for vk in vec_keys }
+
     for i in range(rawRatings.shape[0]):
         for j in range(rawRatings.shape[1]):
             if rawRatings[i, j] != 0:
@@ -422,6 +503,21 @@ def all_but_one():
                 nnItemAvg = nn_item_average(i + 1, j + 1)
                 nnItemWeight = nn_item_weighted(i + 1, j + 1)
                 #nnItemAdj
+
+                ## update overall i-th val in vectors
+                overall_err_vectors["CMU"][i] = collAvg
+                overall_err_vectors["CWS"][i] = collWeighted
+                overall_err_vectors["CAWS"][i] = collAdj
+                overall_err_vectors["kNN-CAVG"][i] = nnCollAvg
+                overall_err_vectors["kNN-CWS"][i] = nnCollWeight
+                ## add for nnCollAdj
+                overall_err_vectors["IMU"] = itemAvg
+                overall_err_vectors["IWS"] = itemWeighted
+                overall_err_vectors["IAWS"] = itemAdj
+                overall_err_vectors["kNN-IAVG"] = nnCollAvg
+                overall_err_vectors["kNN-IWS"] = nnCollWeight
+                ## add for nnItemAdj
+
                 print("Collaborative mean utility error: %.11f" %
                       find_error(collAvg, actual))
                 print("Collaborative weighted sum error: %.11f" %
@@ -464,4 +560,4 @@ userActivity, rawRatings = load_ratings()
 #print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
 #print (nn_item_weighted(31, 20))
 reserved_set(rawRatings)
-all_but_one()
+# all_but_one()
