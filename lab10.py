@@ -434,4 +434,4 @@ userActivity, rawRatings = load_ratings()
 #print (nn_item_average(31, 20)) # not sure why only 3 decimal points buttttttt
 #print (nn_item_weighted(31, 20))
 reserved_set(rawRatings)
-all_but_one()
+#all_but_one()
