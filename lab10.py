@@ -16,6 +16,8 @@ EPSILON = 0.0001    ## useful for assertions over floats
 
 rawRatingsTable = []  ## use rawRatings variable to store the NumPy array of
                  ## ratings from the data file
+userActivity = []
+rawRatings = []
 
 ### loading the array of ratings
 def load_ratings():
@@ -477,7 +479,7 @@ def plotSomething():
 
 # RUN
 
-userActivity, rawRatings = load_ratings()
+#userActivity, rawRatings = load_ratings()
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
@@ -489,5 +491,6 @@ userActivity, rawRatings = load_ratings()
 #print (nn_coll_weighted(31, 20))
 #print (nn_item_average(31, 20))
 #print (nn_item_weighted(31, 20))
+#plot_data()
 #reserved_set(rawRatings)
 #all_but_one()
