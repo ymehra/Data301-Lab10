@@ -289,6 +289,21 @@ def nn_coll_weighted(person, jokeId):
 
     return float(k) * float(sum)
 
+def nn_coll_adjusted(person, jokeId):
+    # YASH IS WORKING ON THIS
+    N = 10
+    sum = 0.0
+    simSum = 0.0
+    avg = nn_item_average(person, jokeId)
+    nearestNeighbors = nNN_users(N, person)
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0]  # computing K
+        sum += nearestNeighbors[n][0] * (rawRatings[nearestNeighbors[n][1], jokeId - 1] - avg)
+
+    k = 1.0 / float(simSum)
+    adjusted = avg + (k * sum)
+    return adjusted
+
 
 # Nearest Neighbor Item-based predictions
 def nn_item_average(person, jokeId):
@@ -317,6 +332,23 @@ def nn_item_weighted(person, jokeId):
     return float(k) * float(sum)
 
 
+def nn_item_adjusted(person, jokeId):
+    simSum = 0.0
+    sum = 0.0
+    N = 10
+    nearestNeighbors = nNN_jokes(N, jokeId)
+    avg = nn_coll_average(person, jokeId)
+
+    for n in range(len(nearestNeighbors)):
+        simSum += nearestNeighbors[n][0]  # computing K
+        sum += nearestNeighbors[n][0] * (rawRatings[person - 1, nearestNeighbors[n][1]] - avg)
+
+    k = 1.0 / float(simSum)
+    adjusted = avg + (k * sum)
+    return adjusted
+
+
+
 
 # just did basic error equation...can do Sum Squared, etc later if we want
 def find_error(predicted, rating):
@@ -328,13 +360,11 @@ def reserved_set(ratingsCopy):
     users = np.random.choice(rawRatings.shape[0], 3, False)
     jokes = np.random.choice(rawRatings.shape[1], 3, False)
 
-    # remove pairs from ratings matrix
-    for i in range(len(users)):
-        ratingsCopy[users[i], jokes[i]] = 0
 
     for i in range(len(users)):
         print("User ", users[i]+1, ", Joke ", jokes[i]+1)
         print("Real rating: ", rawRatings[users[i], jokes[i]])
+        actual = rawRatings[users[i], jokes[i]]
         collAvg = coll_average(users[i], jokes[i])
         collWeighted = coll_weighted_sum(users[i], jokes[i])
         collAdj = coll_adjusted_sum(users[i], jokes[i])
