@@ -18,7 +18,7 @@ rawRatingsTable = []  ## use rawRatings variable to store the NumPy array of
 ## ratings from the data file
 userActivity = []
 rawRatings = []
-
+avgs = []
 
 ### loading the array of ratings
 def load_ratings():
@@ -27,7 +27,7 @@ def load_ratings():
 
         for line in file:
             ratings = line.split(",")
-            rows.append(np.asarray(ratings, dtype='float'))
+            rows.append(np.asarray(ratings, dtype = 'float'))
 
         rawRatingsTable = np.asarray(rows)
         # SPLIT RAW RATINGS MATRIX
@@ -50,7 +50,7 @@ def load_ratings():
 ## this will create the nparrays like dekhtyar said in lab - we can now use np.operations to speed it up
 def commonUsers(ratings1, ratings2):
     ## length of shorter array
-    N = min(ratings1.size, ratings2.size)
+    N = min (ratings1.size, ratings2.size)
     rt1 = []
     rt2 = []
     for i in range(N):
@@ -107,7 +107,7 @@ def coll_average(person, jokeId):
             rSum += ratings[i]
             count += 1
 
-    return rSum / count
+    return float(rSum) / count
 
 
 def computeK(person, jokeID):
@@ -122,6 +122,9 @@ def computeK(person, jokeID):
         total += abs(cosine_sim(u_c, oUser))
 
     return 1.0 / total
+
+
+
 
 
 def coll_weighted_sum(person, jokeID):
@@ -181,7 +184,7 @@ def computeOtherK(person, jokeId):
             simSum += abs(cosine_sim(jokes[jokeId - 1],
                                      jokes[joke]))
 
-    return 1 / simSum
+    return 1.0 / simSum
 
 
 def item_weighted_sum(person, jokeId):
@@ -201,6 +204,7 @@ def item_weighted_sum(person, jokeId):
     return simSum * k
 
 
+
 def item_adjusted_sum(person, jokeId):
     userAvg = coll_average(person, jokeId)
     k = computeOtherK(person, jokeId)
@@ -216,6 +220,7 @@ def item_adjusted_sum(person, jokeId):
 
     adjusted = userAvg + k * total
     return adjusted
+
 
 
 # Nearest Neighbor Collaborative predictions
@@ -281,7 +286,6 @@ def nn_coll_weighted(person, jokeId):
     k = 1.0 / float(simSum)
 
     return float(k) * float(sum)
-
 
 def nn_coll_adjusted(person, jokeId):
     # YASH IS WORKING ON THIS
@@ -426,6 +430,7 @@ def output_overall_accuracies(err_vectors, err_results, output_ordered_keys):
 # compute prediction error for given predicted and actual rating
 def find_error(predicted, rating):
     return abs(predicted - rating)
+
 
 
 ## compute overall prediction accuracy using SSE
@@ -590,8 +595,6 @@ def all_but_one():
                 overall_err_vectors["kNN-IWS"] = nnCollWeight
                 ## add for nnItemAdj
 
-
-
                 print("Collaborative mean utility error: %.11f" %
                       find_error(collAvg, actual))
                 print("Collaborative weighted sum error: %.11f" %
@@ -621,7 +624,7 @@ def all_but_one():
 # QUESTION 2
 
 # returns np array of avg ratings for each joke
-def avgRatings():
+def avg_joke_ratings():
     scores = []
 
     for joke in range(rawRatings.shape[1]):
@@ -636,9 +639,121 @@ def avgRatings():
 
     return np.asarray(scores)
 
-# RUN
 
+def avg_user_ratings():
+    scores = []
+
+    for user in range(rawRatings.shape[0]):
+        total = 0
+        count = 0
+        for joke in range(rawRatings.shape[1]):
+            total += rawRatings[user, joke]
+            count += 1
+
+        scores.append(total/count)
+
+    return np.asarray(scores)
+
+
+# gets users with very high avg ratings, very low avg ratings
+# (avg ratings > 9.2608(max avg) - 1 OR avg ratings < -9.2679(min avg) + 1)
+def outliers():
+    avgs = avg_user_ratings()
+    max = np.amax(avgs)
+    min = np.amin(avgs)
+    top = []
+    bottom = []
+
+    print(max)
+    print(min)
+    for user in range(avgs.shape[0]):
+        if avgs[user] > max - 1:
+            top.append(user)
+        elif avgs[user] < min + 1:
+            bottom.append(user)
+
+    return np.asarray(top), np.asarray(bottom)
+
+
+# helper func for consistent_minorities
+def intersect_minorities(jokeIndex, minoritySet):
+    minorities = []
+    stdev = np.std(rawRatings[:, jokeIndex])
+
+    for user in range(rawRatings.shape[0]):
+        if rawRatings[user, jokeIndex] > avgs[jokeIndex] + stdev \
+                or rawRatings[user, jokeIndex] < avgs[jokeIndex] - stdev:
+            # add user to list of minorities (repeats dealt with after)
+            minorities.append(user)
+
+    if jokeIndex == 0:
+        return np.asarray(minorities)
+    else:
+        return np.intersect1d(np.asarray(minorities), np.asarray(minoritySet))
+
+
+# finds users consistently in the minority - there are 5
+def minority_users():
+    minoritySet = []
+
+    for joke in range(rawRatings.shape[1]):
+        minorities = intersect_minorities(joke, minoritySet)
+        minoritySet = minorities
+
+    return np.asarray(minoritySet)
+
+
+# NOT USED RN
+def minority(jokeIndex, minorities):
+    stdev = np.std(rawRatings[:, jokeIndex])
+
+    for user in range(rawRatings.shape[0]):
+        # if user's rating is not in majority of joke's user ratings
+        if rawRatings[user, jokeIndex] > avgs[jokeIndex] + stdev \
+            or rawRatings[user, jokeIndex] < avgs[jokeIndex] - stdev:
+            # add user to list of minorities (repeats dealt with after)
+            minorities.append(user)
+
+    return minorities
+
+
+# NOT USED RN
+def find_minorities():
+    minorityUsers = []
+    userSet = {} # dict of tuples {userId: # times user was in a joke's minority}
+    minorities = []
+
+    # get all users that were ever in a joke's minority
+    for joke in range(rawRatings.shape[1]):
+        minorityUsers = minority(joke, minorityUsers)
+
+    minorityUsers.sort()
+
+    # count number of times each user was in a minority
+    for user in range(len(minorityUsers)):
+        if minorityUsers[user] not in userSet.keys():
+            userSet[minorityUsers[user]] = 1
+        else:
+            # inc count for that user ID
+            count = userSet[minorityUsers[user]]
+            userSet[minorityUsers[user]] = count + 1
+
+
+    for user in userSet.keys():
+        if userSet[user] == 100: # CAN MANIPULATE TO USERS IN MINORITY X% OF THE TIME
+            minorities.append(user)
+
+    print(minorities)
+
+
+
+
+# RUN
 userActivity, rawRatings = load_ratings()
-# plot_data()
+
 reserved_set(rawRatings)
 # all_but_one()
+
+avgs = avg_joke_ratings()
+minorityUsers = minority_users()
+print(minorityUsers)
