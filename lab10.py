@@ -455,7 +455,7 @@ def all_but_one():
 # QUESTION 2
 
 # returns np array of avg ratings for each joke
-def avgRatings():
+def avg_joke_ratings():
     scores = []
 
     for joke in range(rawRatings.shape[1]):
@@ -471,9 +471,49 @@ def avgRatings():
     return np.asarray(scores)
 
 
+def avg_user_ratings():
+    scores = []
+
+    for user in range(rawRatings.shape[0]):
+        total = 0
+        count = 0
+        for joke in range(rawRatings.shape[1]):
+            total += rawRatings[user, joke]
+            count += 1
+
+        scores.append(total/count)
+
+    return np.asarray(scores)
+
+
+# gets users with very high avg ratings, very low avg ratings
+# (avg ratings > 9.2608(max avg) - 1 OR avg ratings < -9.2679(min avg) + 1)
+def outliers():
+    avgs = avg_user_ratings()
+    max = np.amax(avgs)
+    min = np.amin(avgs)
+    top = []
+    bottom = []
+
+    print(max)
+    print(min)
+    for user in range(avgs.shape[0]):
+        if avgs[user] > max - 1:
+            top.append(user)
+        elif avgs[user] < min + 1:
+            bottom.append(user)
+
+    return np.asarray(top), np.asarray(bottom)
+
+
+
+
 # RUN
 
-#userActivity, rawRatings = load_ratings()
+userActivity, rawRatings = load_ratings()
+tops, bottoms = outliers()
+print(tops)
+print(bottoms)
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
