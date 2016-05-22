@@ -303,7 +303,6 @@ def nn_coll_adjusted(person, jokeId):
     return adjusted
 
 
-# Nearest Neighbor Item-based predictions
 def nn_item_average(person, jokeId):
     sum = 0.0
     N = 10
@@ -345,7 +344,9 @@ def nn_item_adjusted(person, jokeId):
     adjusted = avg + (k * sum)
     return adjusted
 
+
 ####################################### ERROR STUDIES OUTPUT FUNCTIONS #############################################
+
 
 ## maps the vector_keys to their output strings
 def get_str_map_individual():
@@ -357,11 +358,13 @@ def get_str_map_individual():
         "CAWS": "Collaborative adjusted weighted sum error:",
         "kNN-CAVG": "K Nearest Neighbors collaborative average error:",
         "kNN-CWS": "K Nearest Neighbors collaborative weighted sum error:",
+        "kNN-CAWS": "K Nearest Neighbors collaborative adjusted weighted sum error:",
         "IMU": "Item-based mean utility error:",
         "IWS": "Item-based weighted sum error:",
         "IAWS": "Item-based adjusted weighted sum error:",
         "kNN-IAVG": "K Nearest Neighbors item-based average error: ",
-        "kNN-IWS": "K Nearest Neighbors item-based weighted sum error:"
+        "kNN-IWS": "K Nearest Neighbors item-based weighted sum error:",
+        "kNN-IAWS": "K Nearest Neighbors item-based adjusted weighted sum error:"
     }
     return str_map
 
@@ -377,11 +380,13 @@ def get_str_map_err_studies():
         "CAWS": "Collaborative Adjusted Weighted Sum",
         "kNN-CAVG": "kNN Collaborative Average ",
         "kNN-CWS": "kNN Collaborative Weighted Sum",
+        "kNN-CAWS" : "kNN Collaborative Adjusted Sum",
         "IMU": "Item-based Mean Utility",
         "IWS": "Item-based Weighted Sum",
         "IAWS": "Item-based Adjusted Weighted Sum",
         "kNN-IAVG": "kNN Item-based Average",
-        "kNN-IWS": "kNN Item-based Weighted Sum"
+        "kNN-IWS": "kNN Item-based Weighted Sum",
+        "kNN-IAWS" : "kNN Item-based Adjusted Sum"
     }
     return str_map
 
@@ -390,22 +395,24 @@ def get_str_map_err_studies():
 def output_individual_error(err_vectors, ele_index):
     str_map = get_str_map_individual()
 
-    actual = err_vectors["ACTUAL"][ele_index]
     ## can easily change float precision with this print formatter
     print("Studying (User ID %d, Joke ID %d)", err_vectors["USER"][ele_index])
+    actual = err_vectors["ACTUAL"][ele_index]
     print(str_map["ACTUAL"] + "  %.11f" % actual)
+    ## collaborative predictors
     print(str_map["CMU"] + "  %.11f" % find_error(err_vectors["CMU"][ele_index], actual))
     print(str_map["CWS"] + "  %.11f" % find_error(err_vectors["CWS"][ele_index], actual))
     print(str_map["CAWS"] + "  %.11f" % find_error(err_vectors["CAWS"][ele_index], actual))
     print(str_map["kNN-CAVG"] + "  %.11f" % find_error(err_vectors["kNN-CAVG"][ele_index], actual))
     print(str_map["kNN-CWS"] + "  %.11f" % find_error(err_vectors["kNN-CWS"][ele_index], actual))
-    # print(str_map["kNN-CAWS"] + "  %.11f" % find_error(    err_vectors["kNN-CAWS"][ele_index], actual))
+    print(str_map["kNN-CAWS"] + "  %.11f" % find_error(    err_vectors["kNN-CAWS"][ele_index], actual))
+    ## item-based predictors
     print(str_map["IMU"] + "  %.11f" % find_error(err_vectors["IMU"][ele_index], actual))
     print(str_map["IWS"] + "  %.11f" % find_error(err_vectors["IWS"][ele_index], actual))
     print(str_map["IAWS"] + "  %.11f" % find_error(err_vectors["IAWS"][ele_index], actual))
     print(str_map["kNN-IAVG"] + "  %.11f" % find_error(err_vectors["kNN-IAVG"][ele_index], actual))
     print(str_map["kNN-IWS"] + "  %.11f" % find_error(err_vectors["kNN-IWS"][ele_index], actual))
-    # print(str_map["kNN-IAWS"] + "  %.11f" % find_error(    err_vectors["kNN-IAWS"][ele_index], actual))
+    print(str_map["kNN-IAWS"] + "  %.11f" % find_error(    err_vectors["kNN-IAWS"][ele_index], actual))
     print()
 
 
@@ -513,8 +520,8 @@ def reserved_set(ratingsCopy):
     jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
 
     ## list of keys in error dictionary - ordered in output order
-    vec_keys = ["USER", "ACTUAL", "CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS",
-                "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    vec_keys = ["USER", "ACTUAL", "CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS", "kNN-CAWS",
+                "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS", "kNN-IAWS"]
     # initialize dict that holds computed value for each iteration to use in overall accuracy calculations
     overall_err_vectors = {vk: np.empty((sample_size,)) for vk in vec_keys}
     ## overwrite "USER" key to hold list of tuples
@@ -531,18 +538,20 @@ def reserved_set(ratingsCopy):
         overall_err_vectors["ACTUAL"][i] = rawRatings[users[i], jokes[i]]
 
         ## update overall i-th  value in each prediction vector
+        ## collaborative predictors
         overall_err_vectors["CMU"][i] = coll_average(users[i], jokes[i])
         overall_err_vectors["CWS"][i] = coll_weighted_sum(users[i], jokes[i])
         overall_err_vectors["CAWS"][i] = coll_adjusted_sum(users[i], jokes[i])
         overall_err_vectors["kNN-CAVG"][i] = nn_coll_average(users[i], jokes[i])
         overall_err_vectors["kNN-CWS"][i] = nn_coll_weighted(users[i], jokes[i])
-        ## add for nnCollAdj
+        overall_err_vectors["kNN-CAWS"][i] = nn_coll_adjusted(users[i], jokes[i])
+        ## item-based predictors
         overall_err_vectors["IMU"][i] = item_average(users[i], jokes[i])
         overall_err_vectors["IWS"][i] = item_weighted_sum(users[i], jokes[i])
         overall_err_vectors["IAWS"][i] = item_adjusted_sum(users[i], jokes[i])
         overall_err_vectors["kNN-IAVG"][i] = nn_item_average(users[i], jokes[i])
         overall_err_vectors["kNN-IWS"][i] = nn_item_weighted(users[i], jokes[i])
-        ## add for nnItemAdj
+        overall_err_vectors["kNN-IAWS"][i] = nn_item_adjusted(users[i], jokes[i])
 
         ## output error results for i-th element of sample
         output_individual_error(overall_err_vectors, i)
@@ -557,7 +566,8 @@ def reserved_set(ratingsCopy):
 
 
 def all_but_one():
-    vec_keys = ["CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS", "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    vec_keys = ["USER", "ACTUAL", "CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS", "kNN-CAWS",
+                "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS", "kNN-IAWS"]
     # dict that holds computed value for each iteration to use in overall accuracy calcs
     overall_err_vectors = {vk: np.empty(rawRatings.shape[0]) for vk in vec_keys}
 
@@ -594,6 +604,7 @@ def all_but_one():
                 overall_err_vectors["kNN-IAVG"] = nnCollAvg
                 overall_err_vectors["kNN-IWS"] = nnCollWeight
                 ## add for nnItemAdj
+
 
                 print("Collaborative mean utility error: %.11f" %
                       find_error(collAvg, actual))
