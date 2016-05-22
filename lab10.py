@@ -18,6 +18,7 @@ rawRatingsTable = []  ## use rawRatings variable to store the NumPy array of
                  ## ratings from the data file
 userActivity = []
 rawRatings = []
+avgs = []
 
 ### loading the array of ratings
 def load_ratings():
@@ -360,10 +361,61 @@ def find_error(predicted, rating):
 
 
 
-def reserved_set(ratingsCopy):
-    users = np.random.choice(rawRatings.shape[0], 3, False)
-    jokes = np.random.choice(rawRatings.shape[1], 3, False)
+## compute overall prediction accuracy using SSE
+def sse_overall(err_vectors) -> dict:
+    results = { vk : -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
 
+    for vk in err_vectors.keys():
+        if vk != "ACTUAL":
+            sqSum = float(np.sum(np.square(err_vectors[vk])))
+            results[vk] = sqSum
+
+    return results
+
+
+def avg_sse_overall(err_vectors) -> dict:
+    results = {vk: -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
+
+    for vk in err_vectors.keys():
+        # dont use actual rating
+        if vk != "ACTUAL":
+            sqSum = np.sum(np.square(err_vectors[vk]))
+            results[vk] = float(sqSum) / err_vectors[vk].size[0]
+
+    return results
+
+
+## computes the proportion of predictions accurate at threshold, epsilon
+def threshold_accuracy(err_vectors, epsilon) -> dict:
+    try:
+        assert epsilon > 0
+    except:
+        print("epsilon <= 0")
+
+    results = {vk: -69 for vk in err_vectors.keys() if vk != "ACTUAL" }
+
+    for vk in err_vectors.keys():
+        if vk != "ACTUAL":
+            num_accurate = np.sum(np.where(err_vectors[vk] <= epsilon))
+            results[vk] = float(num_accurate) / err_vectors[vk].shape[0]
+
+    return results
+
+
+def sentiment_accuracy(err_vectors) -> dict:
+    raise NotImplementedError
+
+
+
+def reserved_set(ratingsCopy):
+    sample_size = 3
+    users = np.random.choice(rawRatings.shape[0], sample_size, False)
+    jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
+
+    ## need ot add kNN-IAWS and kNN-CAWS
+    vec_keys = ["ACTUAL", "CMU", "CWS", "CAWS","kNN-CAVG", "kNN-CWS", "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    # dict that holds computed value for each iteration to use in overall accuracy calcs
+    overall_err_vectors = { vk : np.empty((sample_size,)) for vk in vec_keys }
 
     for i in range(len(users)):
         print("User ", users[i]+1, ", Joke ", jokes[i]+1)
@@ -381,6 +433,26 @@ def reserved_set(ratingsCopy):
         nnItemAvg = nn_item_average(users[i], jokes[i])
         nnItemWeight = nn_item_weighted(users[i], jokes[i])
         #nnItemAdj
+
+        ## needed for sentiment accurracy
+        ## I am going to be changing these functions to compute errors external but i wanted yall to have some stuff to work with
+        overall_err_vectors["ACTUAL"][i] = rawRatings[users[i], jokes[i]]
+        ## update overall i-th val in vectors
+        overall_err_vectors["CMU"][i] = collAvg
+        overall_err_vectors["CWS"][i] = collWeighted
+        overall_err_vectors["CAWS"][i] = collAdj
+        overall_err_vectors["kNN-CAVG"][i] = nnCollAvg
+        overall_err_vectors["kNN-CWS"][i] = nnCollWeight
+        ## add for nnCollAdj
+        overall_err_vectors["IMU"][i] = itemAvg
+        overall_err_vectors["IWS"][i] = itemWeighted
+        overall_err_vectors["IAWS"][i] = itemAdj
+        overall_err_vectors["kNN-IAVG"][i] = nnCollAvg
+        overall_err_vectors["kNN-IWS"][i] = nnCollWeight
+        ## add for nnItemAdj
+
+
+
 
         print("Collaborative mean utility error: %.11f" %
               find_error(collAvg, actual))
@@ -407,8 +479,18 @@ def reserved_set(ratingsCopy):
         # print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
             # find_error(nnItemAdj, actual))
 
+    sse_results = sse_overall(overall_err_vectors)
+    print("SSE")
+    for key in overall_err_vectors.keys():
+        print(key + ":     ", sse_results[key])
+
 
 def all_but_one():
+
+    vec_keys = ["CMU", "CWS", "CAWS","kNN-CAVG", "kNN-CWS", "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS"]
+    # dict that holds computed value for each iteration to use in overall accuracy calcs
+    overall_err_vectors = { vk : np.empty(rawRatings.shape[0]) for vk in vec_keys }
+
     for i in range(rawRatings.shape[0]):
         for j in range(rawRatings.shape[1]):
             if rawRatings[i, j] != 0:
@@ -426,6 +508,21 @@ def all_but_one():
                 nnItemAvg = nn_item_average(i + 1, j + 1)
                 nnItemWeight = nn_item_weighted(i + 1, j + 1)
                 #nnItemAdj
+
+                ## update overall i-th val in vectors
+                overall_err_vectors["CMU"][i] = collAvg
+                overall_err_vectors["CWS"][i] = collWeighted
+                overall_err_vectors["CAWS"][i] = collAdj
+                overall_err_vectors["kNN-CAVG"][i] = nnCollAvg
+                overall_err_vectors["kNN-CWS"][i] = nnCollWeight
+                ## add for nnCollAdj
+                overall_err_vectors["IMU"] = itemAvg
+                overall_err_vectors["IWS"] = itemWeighted
+                overall_err_vectors["IAWS"] = itemAdj
+                overall_err_vectors["kNN-IAVG"] = nnCollAvg
+                overall_err_vectors["kNN-IWS"] = nnCollWeight
+                ## add for nnItemAdj
+
                 print("Collaborative mean utility error: %.11f" %
                       find_error(collAvg, actual))
                 print("Collaborative weighted sum error: %.11f" %
@@ -506,14 +603,89 @@ def outliers():
     return np.asarray(top), np.asarray(bottom)
 
 
+# helper func for consistent_minorities
+def intersect_minorities(jokeIndex, minoritySet):
+    minorities = []
+    stdev = np.std(rawRatings[:, jokeIndex])
+
+    for user in range(rawRatings.shape[0]):
+        if rawRatings[user, jokeIndex] > avgs[jokeIndex] + stdev \
+                or rawRatings[user, jokeIndex] < avgs[jokeIndex] - stdev:
+            # add user to list of minorities (repeats dealt with after)
+            minorities.append(user)
+
+    if jokeIndex == 0:
+        return np.asarray(minorities)
+    else:
+        return np.intersect1d(np.asarray(minorities), np.asarray(minoritySet))
+
+
+# finds users consistently in the minority - there are 5
+def minority_users():
+    minoritySet = []
+
+    for joke in range(rawRatings.shape[1]):
+        minorities = intersect_minorities(joke, minoritySet)
+        minoritySet = minorities
+
+    return np.asarray(minoritySet)
+
+
+# NOT USED RN
+def minority(jokeIndex, minorities):
+    stdev = np.std(rawRatings[:, jokeIndex])
+
+    for user in range(rawRatings.shape[0]):
+        # if user's rating is not in majority of joke's user ratings
+        if rawRatings[user, jokeIndex] > avgs[jokeIndex] + stdev \
+            or rawRatings[user, jokeIndex] < avgs[jokeIndex] - stdev:
+            # add user to list of minorities (repeats dealt with after)
+            minorities.append(user)
+
+    return minorities
+
+
+# NOT USED RN
+def find_minorities():
+    minorityUsers = []
+    userSet = {} # dict of tuples {userId: # times user was in a joke's minority}
+    minorities = []
+
+    # get all users that were ever in a joke's minority
+    for joke in range(rawRatings.shape[1]):
+        minorityUsers = minority(joke, minorityUsers)
+
+    minorityUsers.sort()
+
+    # count number of times each user was in a minority
+    for user in range(len(minorityUsers)):
+        if minorityUsers[user] not in userSet.keys():
+            userSet[minorityUsers[user]] = 1
+        else:
+            # inc count for that user ID
+            count = userSet[minorityUsers[user]]
+            userSet[minorityUsers[user]] = count + 1
+
+
+    for user in userSet.keys():
+        if userSet[user] == 100: # CAN MANIPULATE TO USERS IN MINORITY X% OF THE TIME
+            minorities.append(user)
+
+    print(minorities)
+
+
 
 
 # RUN
 
 userActivity, rawRatings = load_ratings()
-tops, bottoms = outliers()
-print(tops)
-print(bottoms)
+#tops, bottoms = outliers()
+#print(tops)
+#print(bottoms)
+avgs = avg_joke_ratings()
+#print(avgs[88])
+minorityUsers = minority_users()
+print(minorityUsers)
 #print (coll_average(2, 20))
 #print (item_average(2, 20))
 #print (coll_weighted_sum(2,20))
