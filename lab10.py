@@ -897,10 +897,3 @@ activeUsers = get_activeUsers()
 get_slr(activeUsers)
 #popJokes = get_popularJokes()
 #get_slr(popJokes)
-
-# reserved_set(rawRatings)
-all_but_one()
-
-avgs = avg_joke_ratings()
-minorityUsers = minority_users()
-print(minorityUsers)
