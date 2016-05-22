@@ -293,7 +293,7 @@ def nn_coll_adjusted(person, jokeId):
     sum = 0.0
     simSum = 0.0
     avg = nn_item_average(person, jokeId)
-    nearestNeighbors = nNN_users(N, person)
+    nearestNeighbors = nNN_users(N, person, jokeId)
     for n in range(len(nearestNeighbors)):
         simSum += nearestNeighbors[n][0]  # computing K
         sum += nearestNeighbors[n][0] * (rawRatings[nearestNeighbors[n][1], jokeId - 1] - avg)
@@ -333,7 +333,7 @@ def nn_item_adjusted(person, jokeId):
     simSum = 0.0
     sum = 0.0
     N = 10
-    nearestNeighbors = nNN_jokes(N, jokeId)
+    nearestNeighbors = nNN_jokes(N, person, jokeId)
     avg = nn_coll_average(person, jokeId)
 
     for n in range(len(nearestNeighbors)):
@@ -413,6 +413,32 @@ def output_individual_error(err_vectors, ele_index):
     print(str_map["kNN-IAVG"] + "  %.11f" % find_error(err_vectors["kNN-IAVG"][ele_index], actual))
     print(str_map["kNN-IWS"] + "  %.11f" % find_error(err_vectors["kNN-IWS"][ele_index], actual))
     print(str_map["kNN-IAWS"] + "  %.11f" % find_error(    err_vectors["kNN-IAWS"][ele_index], actual))
+    print()
+
+
+## helper function to print the values for 1 iteration of reserved_set()
+def output_individual_error_2D(err_vectors, ele_index):
+    str_map = get_str_map_individual()
+    test_joke = 49
+
+    ## can easily change float precision with this print formatter
+    print("Studying (User ID %d, Joke ID %d)" % (ele_index, 50))
+    actual = err_vectors["ACTUAL"][ele_index, test_joke]
+    print(str_map["ACTUAL"] + "  %.11f" % actual)
+    ## collaborative predictors
+    print(str_map["CMU"] + "  %.11f" % find_error(err_vectors["CMU"][ele_index, test_joke], actual))
+    print(str_map["CWS"] + "  %.11f" % find_error(err_vectors["CWS"][ele_index, test_joke], actual))
+    print(str_map["CAWS"] + "  %.11f" % find_error(err_vectors["CAWS"][ele_index, test_joke], actual))
+    print(str_map["kNN-CAVG"] + "  %.11f" % find_error(err_vectors["kNN-CAVG"][ele_index, test_joke], actual))
+    print(str_map["kNN-CWS"] + "  %.11f" % find_error(err_vectors["kNN-CWS"][ele_index, test_joke], actual))
+    print(str_map["kNN-CAWS"] + "  %.11f" % find_error(err_vectors["kNN-CAWS"][ele_index, test_joke], actual))
+    ## item-based predictors
+    print(str_map["IMU"] + "  %.11f" % find_error(err_vectors["IMU"][ele_index, test_joke], actual))
+    print(str_map["IWS"] + "  %.11f" % find_error(err_vectors["IWS"][ele_index, test_joke], actual))
+    print(str_map["IAWS"] + "  %.11f" % find_error(err_vectors["IAWS"][ele_index, test_joke], actual))
+    print(str_map["kNN-IAVG"] + "  %.11f" % find_error(err_vectors["kNN-IAVG"][ele_index, test_joke], actual))
+    print(str_map["kNN-IWS"] + "  %.11f" % find_error(err_vectors["kNN-IWS"][ele_index, test_joke], actual))
+    print(str_map["kNN-IAWS"] + "  %.11f" % find_error(err_vectors["kNN-IAWS"][ele_index, test_joke], actual))
     print()
 
 
@@ -514,7 +540,7 @@ def sentiment_accuracy(err_vectors) -> dict:
 
 ################################################# ACCURACY STUDIES ##########################################
 
-def reserved_set(ratingsCopy):
+def reserved_set():
     sample_size = 3
     users = np.random.choice(rawRatings.shape[0], sample_size, False)
     jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
@@ -568,68 +594,42 @@ def reserved_set(ratingsCopy):
 def all_but_one():
     vec_keys = ["USER", "ACTUAL", "CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS", "kNN-CAWS",
                 "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS", "kNN-IAWS"]
+
     # dict that holds computed value for each iteration to use in overall accuracy calcs
-    overall_err_vectors = {vk: np.empty(rawRatings.shape[0]) for vk in vec_keys}
+    overall_err_vectors = { vk : np.zeros((NUM_USERS, NUM_JOKES)) for vk in vec_keys }
+    ## list containing dictionary for different accuracy studies
+    all_err_results = []
 
     for i in range(rawRatings.shape[0]):
         for j in range(rawRatings.shape[1]):
             if rawRatings[i, j] != 0:
-                actual = rawRatings[i, j]
-                rawRatings[i, j] = 0
-                collAvg = coll_average(i + 1, j + 1)
-                collWeighted = coll_weighted_sum(i + 1, j + 1)
-                collAdj = coll_adjusted_sum(i + 1, j + 1)
-                nnCollAvg = nn_coll_average(i + 1, j + 1)
-                nnCollWeight = nn_coll_weighted(i + 1, j + 1)
-                # nnCollAdj
-                itemAvg = item_average(i + 1, j + 1)
-                itemWeighted = item_weighted_sum(i + 1, j + 1)
-                itemAdj = item_adjusted_sum(i + 1, j + 1)
-                nnItemAvg = nn_item_average(i + 1, j + 1)
-                nnItemWeight = nn_item_weighted(i + 1, j + 1)
-                # nnItemAdj
+                ## update overall i-th val in vectors for all predictors
+                # overall_err_vectors["USER"][i, j] = (i + 1, j + 1)
+                overall_err_vectors["ACTUAL"][i, j] = rawRatings[i, j]
+                ## collaborative predictors
+                overall_err_vectors["CMU"][i, j] = coll_average(i + 1, j + 1)
+                overall_err_vectors["CWS"][i, j] = coll_weighted_sum(i + 1, j + 1)
+                overall_err_vectors["CAWS"][i, j] = coll_adjusted_sum(i + 1, j + 1)
+                overall_err_vectors["kNN-CAVG"][i, j] = nn_coll_average(i + 1, j + 1)
+                overall_err_vectors["kNN-CWS"][i, j] = nn_coll_weighted(i + 1, j + 1)
+                overall_err_vectors["kNN-CAWS"][i, j] = nn_coll_adjusted(i + 1, j + 1)
+                ## item-based predictors
+                overall_err_vectors["IMU"][i, j] = item_average(i + 1, j + 1)
+                overall_err_vectors["IWS"][i, j] = item_weighted_sum(i + 1, j + 1)
+                overall_err_vectors["IAWS"][i, j] = item_adjusted_sum(i + 1, j + 1)
+                overall_err_vectors["kNN-IAVG"][i, j] = nn_item_average(i + 1, j + 1)
+                overall_err_vectors["kNN-IWS"][i, j] = nn_item_weighted(i + 1, j + 1)
+                overall_err_vectors["kNN-IAWS"][i, j] = nn_item_adjusted(i + 1, j + 1)
+        output_individual_error(overall_err_vectors, i)
 
-                overall_err_vectors["USER"][i] = (i + 1, j + 1)
-                overall_err_vectors["ACTUAL"][i] = rawRatings[i, j]
-                ## update overall i-th val in vectors
-                overall_err_vectors["CMU"][i] = collAvg
-                overall_err_vectors["CWS"][i] = collWeighted
-                overall_err_vectors["CAWS"][i] = collAdj
-                overall_err_vectors["kNN-CAVG"][i] = nnCollAvg
-                overall_err_vectors["kNN-CWS"][i] = nnCollWeight
-                ## add for nnCollAdj
-                overall_err_vectors["IMU"] = itemAvg
-                overall_err_vectors["IWS"] = itemWeighted
-                overall_err_vectors["IAWS"] = itemAdj
-                overall_err_vectors["kNN-IAVG"] = nnCollAvg
-                overall_err_vectors["kNN-IWS"] = nnCollWeight
-                ## add for nnItemAdj
+    print("Performing Overall Accuracy Studies")
+    all_err_results.append(sse_overall(overall_err_vectors))
+    all_err_results.append(avg_sse_overall(overall_err_vectors))
+    all_err_results.append(threshold_accuracy(overall_err_vectors))
+    all_err_results.append(sentiment_accuracy(overall_err_vectors))
 
+    output_overall_accuracies(overall_err_vectors, all_err_results, vec_keys)
 
-                print("Collaborative mean utility error: %.11f" %
-                      find_error(collAvg, actual))
-                print("Collaborative weighted sum error: %.11f" %
-                      find_error(collWeighted, actual))
-                print("Collaborative adjusted weighted sum error: %.11f" %
-                      find_error(collAdj, actual))
-                print("K Nearest Neighbors collaborative average error: %.11f" %
-                      find_error(nnCollAvg, actual))
-                print("K Nearest Neighbors collaborative weighted sum error: %.11f" %
-                      find_error(nnCollWeight, actual))
-                # print("K Nearest Neighbors collaborative adjusted weighted sum error: %.11f" %
-                # find_error(nnCollAdj, actual))
-                print("Item-based mean utility error: %.11f" %
-                      find_error(itemAvg, actual))
-                print("Item-based weighted sum error: %.11f" %
-                      find_error(itemWeighted, actual))
-                print("Item-based adjusted weighted sum error: %.11f" %
-                      find_error(itemAdj, actual))
-                print("K Nearest Neighbors item-based average error: %.11f" %
-                      find_error(nnItemAvg, actual))
-                print("K Nearest Neighbors item-based weighted sum error: %.11f" %
-                      find_error(nnItemWeight, actual))
-                # print("K Nearest Neighbors item-based adjusted weighted sum error: %.11f" %
-                # find_error(nnItemAdj, actual))
 
 
 # QUESTION 2
@@ -762,8 +762,8 @@ def find_minorities():
 # RUN
 userActivity, rawRatings = load_ratings()
 
-reserved_set(rawRatings)
-# all_but_one()
+# reserved_set(rawRatings)
+all_but_one()
 
 avgs = avg_joke_ratings()
 minorityUsers = minority_users()
