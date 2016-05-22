@@ -684,6 +684,8 @@ def get_activeUsers():
 
     return np.asarray(ratings)
 
+
+
 # get ratings for 10 jokes that have been rated by all users
 def get_popularJokes():
     trainingSet = [5,7,8,13,15,16,17,18,19,20]   ## list of jokes rated by everyone
@@ -741,7 +743,7 @@ def slr(sample1, sample2):
     return beta, alpha, error
 
 
-
+# helper for slr_correlations()
 def userPair(u1, u2):
     r1, r2 = commonUsers(u1, u2)
     beta, alpha, sse = slr(r1,r2)
@@ -749,6 +751,7 @@ def userPair(u1, u2):
     return beta # slope gives +/- correlation
 
 
+# helper function for get_slr()
 # makes pairs of users from activeUsers or popJokes that have +/- correlations
 def slr_correlations(denseRatings):
     pos = []
@@ -766,9 +769,10 @@ def slr_correlations(denseRatings):
     return np.asarray(pos), np.asarray(neg)
 
 
-
+# helper function for get_slr()
+# turn correlations array of tuples into dictionary {userID: list of users with correlation}
 def clean_correlations(correlations):
-    clean = {} # dict {user : list of users with correlation}
+    clean = {}
 
     for pair in range(correlations.shape[0]):
         if correlations[pair][0] not in clean.keys():
@@ -779,15 +783,43 @@ def clean_correlations(correlations):
     return clean
 
 
+# calls helper functions to get dictionaries of users with positive, negative correlations to each other
 def get_slr(denseRatings):
     pos, neg = slr_correlations(denseRatings)
-    print('cleaning pos')
     pClean = clean_correlations(pos)
-    print('cleaning neg')
     nClean = clean_correlations(neg)
 
-    print(pClean)
+    return pClean, nClean
 
+
+# CALL IN NOTEBOOK YEAH?
+# takes pClean or nClean and checks/plots slr to check
+def check_correlations(correlations):
+    count = 0
+
+    # for first 5 sets of correlations
+    for set in correlations.keys():
+        if count < 5:
+            # check/plot first pair
+            userPair(activeUsers[set, correlations[set][0]])
+            plt.xlim(-12, 12)  ### set the X axis from -10 to 10
+            plt.ylim(-12, 12)  ### set the Y axist from -10 to 10
+
+            x = np.linspace(-12, 12, 2000)  ## create X values for the linear plot of the regression line
+            plt.plot(x, beta * x + alpha, color="green")  ## draw the regression line
+            plt.scatter(r1, r2)
+
+            # check/plot another pair
+            if len(correlations[set]) > 1:
+                userPair(activeUsers[correlations[set][0], correlations[set][1]])
+                plt.xlim(-12, 12)  ### set the X axis from -10 to 10
+                plt.ylim(-12, 12)  ### set the Y axist from -10 to 10
+
+                x = np.linspace(-12, 12, 2000)  ## create X values for the linear plot of the regression line
+                plt.plot(x, beta * x + alpha, color="green")  ## draw the regression line
+                plt.scatter(r1, r2)
+
+        count += 1
 
 
 
@@ -894,6 +926,7 @@ userActivity, rawRatings = load_ratings()
 #minorityUsers = minority_users()
 #print(minorityUsers)
 activeUsers = get_activeUsers()
-get_slr(activeUsers)
+uPos, uNeg = get_slr(activeUsers)
+
 #popJokes = get_popularJokes()
-#get_slr(popJokes)
+#jPosm jNeg = get_slr(popJokes)
