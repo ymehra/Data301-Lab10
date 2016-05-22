@@ -677,7 +677,6 @@ def find_minorities():
 
 
 # RUN
-
 userActivity, rawRatings = load_ratings()
 #tops, bottoms = outliers()
 #print(tops)
