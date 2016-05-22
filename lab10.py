@@ -947,7 +947,7 @@ def find_minorities():
 
 
 # RUN
-userActivity, rawRatings = load_ratings()
+#userActivity, rawRatings = load_ratings()
 
 #reserved_set(rawRatings)
 # all_but_one()
@@ -955,7 +955,7 @@ userActivity, rawRatings = load_ratings()
 #avgs = avg_joke_ratings()
 #minorityUsers = minority_users()
 #print(minorityUsers)
-#activeUsers = get_activeUsers()
+activeUsers = get_activeUsers()
 #uPos, uNeg = get_slr(activeUsers)
 
 #popJokes = get_popularJokes()
