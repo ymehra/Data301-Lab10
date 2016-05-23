@@ -593,6 +593,7 @@ def reserved_set():
     all_err_results.append(sentiment_accuracy(overall_err_vectors))
 
     output_overall_accuracies(overall_err_vectors, all_err_results, vec_keys)
+    return overall_err_vectors, all_err_results, vec_keys
 
 
 def all_but_one():
