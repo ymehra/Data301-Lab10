@@ -698,7 +698,7 @@ def avg_sse_overall(err_vectors) -> dict:
         if vk != "ACTUAL" and vk != "USER":
             sqSumMeanDiff = float(np.sum(np.square(err_vectors[vk] - err_vectors["ACTUAL"])))
             results[vk] = float(sqSumMeanDiff) / err_vectors[vk].shape[0]
-        elif vk == "ACTUAL":
+        elif vk == "ACTUAL" or vk == "USER":
             ## list of actual ratings
             results[vk] = err_vectors[vk]
 
@@ -720,7 +720,7 @@ def threshold_accuracy(err_vectors, epsilon) -> dict:
             mean_diff = np.abs(err_vectors[vk] - err_vectors["ACTUAL"])
             num_accurate = np.sum(np.where(mean_diff <= epsilon))
             results[vk] = float(num_accurate) / err_vectors[vk].shape[0]
-        elif vk == "ACTUAL":
+        elif vk == "ACTUAL" or vk == "USER":
             ## list of actual ratings
             results[vk] = err_vectors[vk]
 
@@ -738,7 +738,7 @@ def sentiment_accuracy(err_vectors) -> dict:
             actual_signs = np.sign(err_vectors["ACTUAL"])
             num_accurate = np.sum(np.equal(predicted_signs, actual_signs))
             results[vk] = float(num_accurate) / predicted_signs.shape[0]
-        elif vk == "ACTUAL":
+        elif vk == "ACTUAL" or vk == "USER":
             ## list of actual ratings
             results[vk] = err_vectors[vk]
 
@@ -764,7 +764,7 @@ def overall_accuracy(overall_err_vectors, vec_keys):
 ################################################# ACCURACY STUDIES ##########################################
 
 def reserved_set():
-    sample_size = 2
+    sample_size = 3
     users = np.random.choice(rawRatings.shape[0], sample_size, False)
     jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
 
