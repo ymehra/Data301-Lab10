@@ -48,19 +48,29 @@ def load_ratings():
 
         return userActivity, rawRatings
 
+# def old_commonUsers(ratings1, ratings2):
+#     # length of shorter array
+#     N = min (ratings1.size, ratings2.size)
+#     rt1 = []
+#     rt2 = []
+#     for i in range(N):
+#         if ratings1[i] != 99 and ratings2[i] != 99:
+#             rt1.append(ratings1[i])
+#             rt2.append(ratings2[i])
+
 
 ## this will create the nparrays like dekhtyar said in lab - we can now use np.operations to speed it up
 def commonUsers(ratings1, ratings2):
-    ## length of shorter array
     N = min(ratings1.size, ratings2.size)
-    rt1 = []
-    rt2 = []
-    for i in range(N):
-        if ratings1[i] != 99 and ratings2[i] != 99:
-            rt1.append(ratings1[i])
-            rt2.append(ratings2[i])
-
-    return np.array(rt1), np.array(rt2)
+    ##list of indexs that are common between r1 and r2
+    commonIndex = [i for i in range(N) if ratings1[i] != 99 and ratings2[i] != 99]
+    ## generators for common ratings
+    r1Gen = (ratings1[i] for i in commonIndex)
+    r2Gen = (ratings2[i] for i in commonIndex)
+    ## create arrays from generators
+    r1 = np.fromiter(r1Gen, dtype='float_', count=len(commonIndex))
+    r2 = np.fromiter(r2Gen, dtype='float_', count=len(commonIndex))
+    return r1, r2
 
 
 def cosine_sim(ratings1, ratings2):
@@ -75,118 +85,178 @@ def cosine_sim(ratings1, ratings2):
     xy = xSqSum * ySqSum
     xySum = np.sum(r1 * r2)
 
-    return float(xySum) / float(xy)
+    return float(xySum) / xy
 
 
-def pearson_sim(ratings1, ratings2, avg):
-    r1, r2 = commonUsers(ratings1, ratings2)
+def pearson_sim(compare, person, avg) -> float:
+    r1, r2 = commonUsers(person, compare)
 
-    x = r1 - avg
-    y = r2 - avg
+    x = r2 - avg
+    y = r1 - avg
     xSq = np.square(x)
     ySq = np.square(y)
-
-    numerator = float(np.sum(x * y))
-    denominator = float(np.sqrt(np.sum(xSq) * np.sum(ySq)))
-
-    return numerator / denominator
+    ## diffX * diffY / sqrt( sum square of mean diff X * sum square of mean diff Y)
+    return float(np.sum(x * y)) / np.sqrt(np.sum(xSq) * np.sum(ySq))
 
 
 ########################################## COLLABORATIVE PREDICTIONS ############################################
 
+# def old_coll_average(person, jokeId):
+#     # get all ratings for jokeId
+#     count = 0
+#     rSum = 0
+#
+#     for usr in range(ratings.shape[0]):
+#         # if valid rating and not person in question's rating
+#         if ratings[usr] != 0 and usr != person + 1:
+#             rSum += ratings[usr]
+#             count += 1
+
+
 # mean utility of a joke for all users who rated it
 def coll_average(person, jokeId):
-    # get all ratings for jokeId
-    ratings = []
-    for row in range(rawRatings.shape[0]):
-        ratings.append(rawRatings[row, jokeId - 1])
-    count = 0
-    rSum = 0
-    ratings = np.asarray(ratings)
-    for i in range(ratings.shape[0]):
-        # if valid rating and not person in question's rating
-        if ratings[i] != 0 and i != person + 1:
-            rSum += ratings[i]
-            count += 1
+    # create arrays from generators to save memory overhead (faster than list comprehension)
+    jokeColGen = ( rawRatings[row, jokeId - 1] for row in range(rawRatings.shape[0]) )
+    ratings = np.fromiter(jokeColGen, dtype='float_', count=rawRatings.shape[0])
 
-    return float(rSum) / count
+    ## generator for aggregating valid ratings
+    genExp = ( ratings[usr] for usr in range(ratings.shape[0]) if ratings[usr] != 0 and usr != person - 1 )
+    valid_ratings = np.fromiter(genExp, dtype='float_')
+
+    return float(np.sum(valid_ratings)) / valid_ratings.shape[0]
 
 
-def computeK(person, jokeID):
+def computeK(person, jokeID, avg):
+    ## control user's ratings
     u_c = np.array(rawRatings[person - 1])
-    others = []
-    for user in range(NUM_USERS):
-        if user != person - 1:
-            others.append(np.array(rawRatings[user]))
 
-    total = 0
-    for oUser in others:
-        total += abs(cosine_sim(u_c, oUser))
+    ## user ids -> rows of jokes
+    others_idx = [user for user in range(NUM_USERS) if user != person - 1]
+    jokeCols = [i for i in range(NUM_JOKES)]
+    ## np.ix_ is probably not needed / correct
+    others = np.array(rawRatings[ np.ix_(others_idx, jokeCols) ])
+    ### rawRating for every user excluding (person - 1) and all 100 joke ratings.
+    # ratingsGen = ( rawRatings[idx,:] for idx in others_idx )
+    # others = np.fromiter(ratingsGen, dtype='float_', count=len(others_idx))
 
-    return 1.0 / total
+    ## generator for similarities between control (u_c) and all other users
+    simGen = ( pearson_sim(oUser, u_c, avg) for oUser in others )
+    vals = np.fromiter(simGen, dtype='float_', count=others.shape[0])
+
+    return 1.0 / np.sum(np.absolute(vals))
 
 
-
+# def old_coll_weighted_sum(person, joke):
+#     usrAvg = item_average(person, joke)
+#     k = computeK(person, joke, usrAvg)
+#     simSum = 0
+#     for user in range(rawRatings.shape[0]):
+#         if user != person - 1:
+#             sim = pearson_sim(rawRatings[person - 1], rawRatings[user], usrAvg)
+#             simSum += sim * rawRatings[user, joke - 1]
+#     return k * simSum
 
 
 def coll_weighted_sum(person, jokeID):
-    k = computeK(person, jokeID)
-
     usrAvg = item_average(person, jokeID)
-    simSum = 0
-    for user in range(rawRatings.shape[0]):
-        if user != person - 1:
-            # sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
-            sim = pearson_sim(rawRatings[person - 1], rawRatings[user], usrAvg)
-            simSum += sim * rawRatings[user, jokeID - 1]
+    k = computeK(person, jokeID, usrAvg)
+    u_c = np.array(rawRatings[person - 1])
 
-    return k * simSum
+    ## gen func for similarities
+    simGen = ( pearson_sim(rawRatings[user], u_c, usrAvg) for user in range(rawRatings.shape[0]) if user != person -1 )
+    sims = np.fromiter(simGen, dtype='float_', count=rawRatings.shape[0] - 1)
+
+    ## gen fun for weights to scale similarity vector
+    weightGen = ( rawRatings[user, jokeID - 1] for user in range(rawRatings.shape[0]) if user != person - 1 )
+    vals = np.fromiter(weightGen, dtype='float_', count=rawRatings.shape[0] - 1)
+
+    return k * np.sum(sims * vals)
+
+
+# def old_coll_adjusted_sum(person, jokeID):
+#     YASH IS WORKING ON THIS
+#     total = 0
+#     sim = 0
+#       userAvg = item_average(person, jokeID)
+#       k = computeK(person, jokeID, userAvg)
+#     for user in range(rawRatings.shape[0]):
+#         if (user != person - 1):
+#               sim = pearson(rawRatings[person - 1], rawRatings[user], userAvg)
+#               total += sim * (rawRatings[user, jokeID - 1] - userAvg)
 
 
 def coll_adjusted_sum(person, jokeID):
-    # YASH IS WORKING ON THIS
     userAvg = item_average(person, jokeID)
-    k = computeK(person, jokeID)
-    total = 0
-    sim = 0
-    for user in range(rawRatings.shape[0]):
-        if (user != person - 1):
-            sim = cosine_sim(rawRatings[person - 1], rawRatings[user])
-            total += sim * (rawRatings[user, jokeID - 1] - userAvg)
+    k = computeK(person, jokeID, userAvg)
+    #list of indicies of all users excluding the control
+    others_idx = list( (user for user in range(NUM_USERS) if user != person - 1) )
+    #list of all joke ids
+    jokeCols = list( range(NUM_JOKES) )
+    others = np.array(rawRatings[np.ix_(others_idx, jokeCols)])
+    # joke ratings to compare with others
+    u_c = np.array(rawRatings[person - 1])
+    ## generator to compute similarity for all users against the control
+    simGen = ( pearson_sim(oUser, u_c, userAvg) for oUser in others )
+    sims = np.fromiter(simGen, dtype='float_', count=others.shape[0] )
+    ## generate to compute adjusted wait for all users excluding control
+    weightGen = ( rawRatings[user, jokeID - 1] - userAvg for user in range(rawRatings.shape[0]) if user != person - 1 )
+    adj_weights = np.fromiter(weightGen, dtype='float_', count=rawRatings.shape[0] - 1)
+    total = np.sum(sims * adj_weights)
 
-    adjusted = userAvg + k * total
-    return adjusted
+    return userAvg + k * total
 
 
 ########################################## ITEM BASED PREDICTIONS ############################################
+# def old_item_average(person, jokeId):
+#     # get all ratings from this user
+#     # ratings = []
+#     # for joke in range(rawRatings.shape[1]):
+#     #     ratings.append(rawRatings[person - 1, joke])
+#     # rSum = 0
+#     # count = 0
+#     # ratings = np.asarray(ratings)
+#     # for i in range(ratings.shape[0]):
+#     #     if ratings[i] != 0:
+#     #         rSum += ratings[i]
+#     #         count += 1
+#         return rSum / count
+
 
 # avg rating a user gave
 def item_average(person, jokeId):
-    # get all ratings from this user
-    ratings = []
-    for joke in range(rawRatings.shape[1]):
-        ratings.append(rawRatings[person - 1, joke])
-    rSum = 0
-    count = 0
-    ratings = np.asarray(ratings)
-    for i in range(ratings.shape[0]):
-        if ratings[i] != 0:
-            rSum += ratings[i]
-            count += 1
 
-    return rSum / count
+    ## genrator for all jokes for user id
+    ratingsGen = ( rawRatings[person - 1, joke] for joke in range(rawRatings.shape[1]) )
+    ratings = np.fromiter(ratingsGen, dtype='float_', count=rawRatings.shape[1])
+    # clean out empty ratings
+    valid_ratings = ratings[ np.nonzero(ratings)[0] ]
+
+    return float(np.sum(valid_ratings)) / valid_ratings.shape[0]
 
 
-def computeOtherK(person, jokeId):
-    simSum = 0.0
+# def old_computeOtherK(person, jokeId, avg):
+    # simSum = 0.0
+    # others_idx = [user for user in range(NUM_USERS) if user != person - 1]
+    # others = np.array(rawRatings[np.array(others_idx, [i for i in range(NUM_JOKES)])])
+    #
+    # for joke in range(jokes.shape[0]):
+    #     if joke != jokeId - 1:
+    #         simSum += abs(cosine_sim(jokes[jokeId - 1], jokes[joke]))
+
+
+def computeOtherK(person, jokeId, avg):
     jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    u_s = jokes[jokeId - 1]
 
-    for joke in range(jokes.shape[0]):
-        if joke != jokeId - 1:
-            simSum += abs(cosine_sim(jokes[jokeId - 1],
-                                     jokes[joke]))
+    ## index list for all jokes excluding control joke
+    others_idx = [joke for joke in range(NUM_JOKES) if joke != jokeId - 1]
+    ## remove np.ix in favor or generator...
+    others = np.array(rawRatings[np.ix_([i for i in range(NUM_USERS)], others_idx)])
+    ## gen func for similarity
+    simGen = ( pearson_sim(oUser, u_s, avg) for oUser in others )
+    vals = np.fromiter(simGen, dtype='float_', count=others.shape[0])
 
-    return 1.0 / simSum
+    return 1.0 / np.sum(np.absolute(vals))
 
 
 def item_weighted_sum(person, jokeId):
@@ -195,21 +265,45 @@ def item_weighted_sum(person, jokeId):
     for col in range(rawRatings.shape[1]):
         jokes.append(rawRatings[:, col])
     jokes = np.asarray(jokes)
-    k = computeOtherK(person, jokeId)
 
     jokeAvg = coll_average(person, jokeId)
+    k = computeOtherK(person, jokeId, jokeAvg)
+
     for joke in range(jokes.shape[0]):
         if joke != jokeId - 1:
-            # simSum += cosine_sim(jokes[jokeId - 1], jokes[joke]) * rawRatings[person-1, joke]
             simSum += pearson_sim(jokes[jokeId - 1], jokes[joke], jokeAvg) * rawRatings[person - 1, joke]
 
-    return simSum * k
+    return k * simSum
 
+
+# def np_item_weighted_sum(person, jokeId):
+    #
+    #
+    # jokeAvg = coll_average(person, jokeId)
+    # k = computeOtherK(person, jokeId, jokeAvg)
+    # ## joke columns by jokeID
+    # jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    # ## control joke
+    # u_s = jokes[jokeId - 1]
+    # ## joke index list excluding control
+    # jokes_idx = [joke for joke in range(NUM_JOKES) if joke != jokeId - 1]
+    # ## remove np.ix for more understandable solution...
+    # otherJokes = np.array(rawRatings[np.ix_([i for i in range(NUM_USERS)], jokes_idx)])
+    # ## gen func to build array of similarities
+    # simGen = ( pearson_sim(oJoke, u_s, jokeAvg) for oJoke in otherJokes )
+    # vals = np.fromiter(simGen, dtype='float_', count=otherJokes.shape[0] )
+    #
+    # # weightGen = (rawRatings[user, jokeID - 1] for user in range(rawRatings.shape[0]) if user != person - 1)
+    # # vals = np.fromiter(weightGen, dtype='float_', count=rawRatings.shape[0] - 1)
+    # weightGen = ( rawRatings[person - 1, joke] for joke in jokes_idx )
+    # weights = np.fromiter(weightGen, dtype='float_', count=len(jokes_idx))
+    #
+    # return k * np.sum(vals * weights)
 
 
 def item_adjusted_sum(person, jokeId):
     userAvg = coll_average(person, jokeId)
-    k = computeOtherK(person, jokeId)
+    k = computeOtherK(person, jokeId, userAvg)
     total = 0.0
     jokes = []
     for col in range(rawRatings.shape[1]):
@@ -217,136 +311,245 @@ def item_adjusted_sum(person, jokeId):
     jokes = np.asarray(jokes)
     for joke in range(jokes.shape[0]):
         if (joke != jokeId - 1):
-            sim1 = cosine_sim(jokes[jokeId - 1], jokes[joke])
+            sim1 = pearson_sim(jokes[jokeId - 1], jokes[joke], userAvg)
             total += sim1 * (rawRatings[person - 1, joke] - userAvg)
 
     adjusted = userAvg + k * total
     return adjusted
 
 
+# def np_item_adjusted_sum(person, jokeId):
+    # jokeAvg = coll_average(person, jokeId)
+    # k = computeOtherK(person, jokeId, jokeAvg)
+    # ## joke ratings from all users by jokeID
+    # jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    # u_s = jokes[jokeId - 1]
+    # ## index list excluding control joke -- must be a better way??
+    # others_idx = [joke for joke in range(NUM_JOKES) if joke != jokeId - 1]
+    # others = np.array(jokes[ np.ix_([i for i in range(NUM_USERS)], others_idx) ])
+    # ## gen func for sim values
+    # simGen = ( pearson_sim(oUser, u_s, jokeAvg) for oUser in others )
+    # vals = np.fromiter(simGen, dtype='float_', count=others.shape[0])
+    # ## compute difference between joke and average rating
+    # jokeDiffGen = (jokes[person - 1, jID] - jokeAvg for jID in others_idx )
+    # joke_diff = np.fromiter(jokeDiffGen, dtype='float_', count=len(others_idx))
+    #
+    # return jokeAvg + k * np.sum(vals * joke_diff)
+
+
 
 # Nearest Neighbor Collaborative predictions
 
+# def old_nNN_users(n, person, jokeId):
+    # sims = []
+    # neighbors = []  # list of nearest user neighbor IDs
+    # avg = item_average(person, jokeId)
+    # for user in range(rawRatings.shape[0]):
+    #     if user != person - 1:
+    #         # sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
+    #         sims.append((pearson_sim(rawRatings[person - 1], rawRatings[user], avg), user))
+    #
+    # # elements are (sim, userID)
+    # sims.sort()
+    #
+    # for n in range(n):
+    #     neighbors.append(sims[n])
+
+
 # returns list of n nearest user IDs
 def nNN_users(n, person, jokeId):
-    sims = []
-    neighbors = []  # list of nearest user neighbor IDs
     avg = item_average(person, jokeId)
-    for user in range(rawRatings.shape[0]):
-        if user != person - 1:
-            # sims.append((cosine_sim(rawRatings[person - 1], rawRatings[user]), user))
-            sims.append((pearson_sim(rawRatings[person - 1], rawRatings[user], avg), user))
+    u_c = np.array(rawRatings[person - 1])
+    others_idx = [user for user in range(NUM_USERS) if user != person - 1]
+    others = np.array(rawRatings[np.ix_(others_idx, [i for i in range(NUM_JOKES)])])
+    ## gen func for similarity
+    simGen = ( pearson_sim(oUser, u_c, avg) for oUser in others )
+    vals = np.fromiter(simGen, dtype='float_', count=others.shape[0])
+    mapped = np.array(list(zip(vals, others_idx)))
+    ## nearest N user ids
+    neighborIDs = mapped[:,0].argsort()[-n:][::1]
+    ## ratings for nearest neighbor ids
+    # neighbors = vals[neighborIDs]
 
-    # elements are (sim, userID)
-    sims.sort()
-
-    for n in range(n):
-        neighbors.append(sims[n])
+    neighbors = [ (vals[nID], nID) for nID in neighborIDs ]
 
     return neighbors
 
 
 # returns list of n nearest jokeIDs
 def nNN_jokes(n, person, jokeId):
-    neighbors = []  # list of nearest neighbor joke IDs
-    sims = []
+    # neighbors = []  # list of nearest neighbor joke IDs
+    # sims = []
+    # avg = coll_average(person, jokeId)
+    # for joke in range(rawRatings.shape[1]):
+    #     if joke != jokeId - 1:
+    #         # sims.append((cosine_sim(rawRatings[:,jokeId - 1], rawRatings[:,joke]), joke))
+    #         sims.append((pearson_sim(rawRatings[:, jokeId - 1], rawRatings[:, joke], avg), joke))
+    #
+    # sims.sort()
+    #
+    # for n in range(n):
+    #     neighbors.append(sims[n])
+    jokes = np.asarray(np.hsplit(rawRatings, rawRatings.shape[1]))
+    u_s = jokes[jokeId - 1]
     avg = coll_average(person, jokeId)
-    for joke in range(rawRatings.shape[1]):
-        if joke != jokeId - 1:
-            # sims.append((cosine_sim(rawRatings[:,jokeId - 1], rawRatings[:,joke]), joke))
-            sims.append((pearson_sim(rawRatings[:, jokeId - 1], rawRatings[:, joke], avg), joke))
 
-    sims.sort()
+    others_idx = [joke for joke in range(NUM_JOKES) if joke != person - 1]
+    others = np.array(rawRatings[np.ix_([i for i in range(NUM_USERS)], others_idx)])
 
-    for n in range(n):
-        neighbors.append(sims[n])
+    simGen = ( pearson_sim(oUser, u_s, avg) for oUser in others )
+    vals = np.fromiter(simGen, dtype='float_', count=others.shape[0])
+    ## maps sim value to joke index
+    mapped = np.array(list(zip(vals, others_idx)))
+    ## top N user ids
+    neighborIDs = mapped[:, 0].argsort()[-n:][::1]
+    # neighbors = vals[neighborIDs]
+
+    neighbors = [ (vals[nID], nID) for nID in neighborIDs ]
 
     return neighbors
 
 
 def nn_coll_average(person, jokeId):
-    sum = 0.0
+    # sum = 0.0
+    #
+    # for n in range(len(nearestNeighbors)):
+    #     sum += rawRatings[nearestNeighbors[n][1], jokeId - 1]
     N = 10
     nearestNeighbors = nNN_users(N, person, jokeId)
+    ## gen func for rawRating[ user, jokeID - 1] for n nearest neighbors
+    gen = ( rawRatings[nearestNeighbors[n][1], jokeId - 1] for n in range(N) )
+    ratings = np.fromiter(gen, dtype='float_', count=N)
 
-    for n in range(len(nearestNeighbors)):
-        sum += rawRatings[nearestNeighbors[n][1], jokeId - 1]
-
-    return float(sum) / float(N)
+    return float(np.sum(ratings)) / N
 
 
 def nn_coll_weighted(person, jokeId):
-    simSum = 0.0
-    sum = 0.0
+    # simSum = 0.0
+    # sum = 0.0
+    #
+    # for n in range(len(nearestNeighbors)):
+    #     simSum += nearestNeighbors[n][0]  # computing K
+    #     sum += nearestNeighbors[n][0] * rawRatings[nearestNeighbors[n][1], jokeId - 1]
+    # k = 1.0 / float(simSum)
     N = 10
     nearestNeighbors = nNN_users(N, person, jokeId)
 
-    for n in range(len(nearestNeighbors)):
-        simSum += nearestNeighbors[n][0]  # computing K
-        sum += nearestNeighbors[n][0] * rawRatings[nearestNeighbors[n][1], jokeId - 1]
+    avg = nn_item_average(person, jokeId)
+    k = computeK(person, jokeId, avg)
 
-    k = 1.0 / float(simSum)
+    ## gen func for raw ratings of N nearest neighbors
+    gen = ( rawRatings[ nearestNeighbors[n][1], jokeId - 1] for n in range(N) )
+    weights = np.fromiter(gen, dtype='float_', count=N)
 
-    return float(k) * float(sum)
+    nnRatingsGen = ( nearestNeighbors[n][0] for n in range(N) )
+    nnRatings = np.fromiter(nnRatingsGen, dtype='float_', count=N)
+    ## n-Nearest ratings * raw weights of these n - nearest
+    vals = nnRatings * weights
+
+    return k * float(np.sum(vals))
 
 
 def nn_coll_adjusted(person, jokeId):
     # YASH IS WORKING ON THIS
+    # N = 10
+    # sum = 0.0
+    # simSum = 0.0
+    # avg = nn_item_average(person, jokeId)
+    # nearestNeighbors = nNN_users(N, person, jokeId)
+    # for n in range(len(nearestNeighbors)):
+    #     simSum += nearestNeighbors[n][0]  # computing K
+    #     sum += nearestNeighbors[n][0] * (rawRatings[nearestNeighbors[n][1], jokeId - 1] - avg)
+    #
+    # k = 1.0 / float(simSum)
+    # adjusted = avg + (k * sum)
+    # return adjusted
     N = 10
-    sum = 0.0
-    simSum = 0.0
-    avg = nn_item_average(person, jokeId)
     nearestNeighbors = nNN_users(N, person, jokeId)
-    for n in range(len(nearestNeighbors)):
-        simSum += nearestNeighbors[n][0]  # computing K
-        sum += nearestNeighbors[n][0] * (rawRatings[nearestNeighbors[n][1], jokeId - 1] - avg)
+    avg = nn_item_average(person, jokeId)
+    k = computeK(person, jokeId, avg)
 
-    k = 1.0 / float(simSum)
-    adjusted = avg + (k * sum)
-    return adjusted
+    adjWeightGen = ( rawRatings[ nearestNeighbors[n][1], jokeId - 1 ] - avg for n in range(N) )
+    adjWeights = np.fromiter(adjWeightGen, dtype='float_', count=N)
+
+    nnGen = ( nearestNeighbors[n][0] for n in range(N) )
+    ratings = np.fromiter(nnGen, dtype='float_', count=N)
+    vals = ratings * adjWeights
+
+    return avg + k * float(np.sum(vals))
 
 
 # Nearest Neighbor Item-based predictions
 def nn_item_average(person, jokeId):
-    sum = 0.0
+    # sum = 0.0
+    # N = 10
+    # nearestNeighbors = nNN_jokes(N, person, jokeId)
+    #
+    # for n in range(len(nearestNeighbors)):
+    #     sum += rawRatings[person - 1, nearestNeighbors[n][1]]
+    #
+    # return float(sum) / float(N)
     N = 10
     nearestNeighbors = nNN_jokes(N, person, jokeId)
 
-    for n in range(len(nearestNeighbors)):
-        sum += rawRatings[person - 1, nearestNeighbors[n][1]]
-
-    return float(sum) / float(N)
-
+    gen = ( rawRatings[person - 1, nearestNeighbors[n][1]] for n in range(N) )
+    ratings = np.fromiter(gen, dtype='float_', count=N)
+    return float(np.sum(ratings)) / N
 
 def nn_item_weighted(person, jokeId):
-    simSum = 0.0
-    sum = 0.0
-    N = 10
-    nearestNeighbors = nNN_jokes(N, person, jokeId)
-
-    for n in range(len(nearestNeighbors)):
-        simSum += nearestNeighbors[n][0]  # computing K
-        sum += nearestNeighbors[n][0] * rawRatings[person - 1, nearestNeighbors[n][1]]
-
-    k = 1.0 / float(simSum)
-
-    return float(k) * float(sum)
-
-
-def nn_item_adjusted(person, jokeId):
-    simSum = 0.0
-    sum = 0.0
+    # simSum = 0.0
+    # sum = 0.0
+    #
+    # for n in range(len(nearestNeighbors)):
+    #     simSum += nearestNeighbors[n][0]  # computing K
+    #     sum += nearestNeighbors[n][0] * rawRatings[person - 1, nearestNeighbors[n][1]]
+    #
+    # k = 1.0 / float(simSum)
+    #
+    # return float(k) * float(sum)
     N = 10
     nearestNeighbors = nNN_jokes(N, person, jokeId)
     avg = nn_coll_average(person, jokeId)
+    k = computeOtherK(person, jokeId, avg)
 
-    for n in range(len(nearestNeighbors)):
-        simSum += nearestNeighbors[n][0]  # computing K
-        sum += nearestNeighbors[n][0] * (rawRatings[person - 1, nearestNeighbors[n][1]] - avg)
+    weightGen = ( rawRatings[person - 1, nearestNeighbors[n][1]] for n in range(N) )
+    weights = np.fromiter(weightGen, dtype='float_', count=N)
 
-    k = 1.0 / float(simSum)
-    adjusted = avg + (k * sum)
-    return adjusted
+    nnGen = ( nearestNeighbors[n][0] for n in range(N) )
+    ratings = np.fromiter(nnGen, dtype='float_', count=N)
+
+    return k * float(np.sum(ratings * weights))
+
+
+
+# def old_nn_item_adjusted(person, jokeId):
+#     simSum = 0.0
+#     sum = 0.0
+#     avg = nn_coll_average(person, jokeId)
+#
+#     for n in range(len(nearestNeighbors)):
+#         simSum += nearestNeighbors[n][0]  # computing K
+#         sum += nearestNeighbors[n][0] * (rawRatings[person - 1, nearestNeighbors[n][1]] - avg)
+#
+#     k = 1.0 / float(simSum)
+#     adjusted = avg + (k * sum)
+#     return adjusted
+
+def nn_item_adjusted(person, jokeId):
+    N = 10
+    nearestNeighbors = nNN_jokes(N, person, jokeId)
+    avg = nn_coll_average(person, jokeId)
+    k = computeOtherK(person, jokeId, avg)
+
+    ## gen func for adjusted weights
+    adjWeightGen = ( rawRatings[person - 1, nearestNeighbors[n][1]] - avg for n in range(N) )
+    adjWeights = np.fromiter(adjWeightGen, dtype='float_', count=N)
+
+    ## gen func for n-Nearest ratings
+    nnGen = ( nearestNeighbors[n][0] for n in range(N) )
+    ratings = np.fromiter(nnGen, dtype='float_', count=N)
+
+    return  avg + k * np.sum(ratings * adjWeights)
 
 
 ####################################### ERROR STUDIES OUTPUT FUNCTIONS #############################################
@@ -488,7 +691,7 @@ def sse_overall(err_vectors) -> dict:
 
 ## compute overall prediction accuracy using Avg. SSE
 def avg_sse_overall(err_vectors) -> dict:
-    results = {vk: -69 for vk in err_vectors.keys() if vk != "ACTUAL" and vk != "USER"}
+    results = { vk : -69 for vk in err_vectors.keys() if vk != "ACTUAL" and vk != "USER"}
 
     for vk in err_vectors.keys():
         # dont compute if key for actual rating or user tuple
@@ -605,7 +808,8 @@ def all_but_one():
     ## list containing dictionary for different accuracy studies
     all_err_results = []
 
-    for i in range(rawRatings.shape[0]):
+    # for i in range(rawRatings.shape[0]):
+    for i in range(100):
         for j in range(rawRatings.shape[1]):
             if rawRatings[i, j] != 0:
                 ## update overall i-th val in vectors for all predictors
@@ -893,6 +1097,8 @@ def find_minorities():
 userActivity, rawRatings = load_ratings()
 
 #reserved_set(rawRatings)
+# all_but_one()
+reserved_set()
 # all_but_one()
 
 #avgs = avg_joke_ratings()
