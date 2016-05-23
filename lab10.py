@@ -603,7 +603,7 @@ def output_individual_error(err_vectors, ele_index):
     str_map = get_str_map_individual()
 
     ## can easily change float precision with this print formatter
-    print("Studying (User ID %d, Joke ID %d)", err_vectors["USER"][ele_index])
+    print("Studying (User ID, Joke ID)", err_vectors["USER"][ele_index])
     actual = err_vectors["ACTUAL"][ele_index]
     print(str_map["ACTUAL"] + "  %.11f" % actual)
     ## collaborative predictors
@@ -697,7 +697,7 @@ def avg_sse_overall(err_vectors) -> dict:
         # dont compute if key for actual rating or user tuple
         if vk != "ACTUAL" and vk != "USER":
             sqSumMeanDiff = float(np.sum(np.square(err_vectors[vk] - err_vectors["ACTUAL"])))
-            results[vk] = float(sqSumMeanDiff) / err_vectors[vk].size[0]
+            results[vk] = float(sqSumMeanDiff) / err_vectors[vk].shape[0]
         elif vk == "ACTUAL":
             ## list of actual ratings
             results[vk] = err_vectors[vk]
@@ -745,10 +745,26 @@ def sentiment_accuracy(err_vectors) -> dict:
     return results
 
 
+def overall_accuracy(overall_err_vectors, vec_keys):
+    ## list containing dictionary for different accuracy studies
+    all_err_results = []
+    print("Computing SSE")
+    all_err_results.append(sse_overall(overall_err_vectors))
+    print("Computing AVG SSE")
+    all_err_results.append(avg_sse_overall(overall_err_vectors))
+    print("Computing threshold accuracy")
+    all_err_results.append(threshold_accuracy(overall_err_vectors, 1))
+    print("Computing sentiment accuracy")
+    all_err_results.append(sentiment_accuracy(overall_err_vectors))
+    ## output accuracy study results
+    output_overall_accuracies(overall_err_vectors, all_err_results, vec_keys)
+
+
+
 ################################################# ACCURACY STUDIES ##########################################
 
 def reserved_set():
-    sample_size = 3
+    sample_size = 2
     users = np.random.choice(rawRatings.shape[0], sample_size, False)
     jokes = np.random.choice(rawRatings.shape[1], sample_size, False)
 
@@ -756,21 +772,15 @@ def reserved_set():
     vec_keys = ["USER", "ACTUAL", "CMU", "CWS", "CAWS", "kNN-CAVG", "kNN-CWS", "kNN-CAWS",
                 "IMU", "IWS", "IAWS", "kNN-IAVG", "kNN-IWS", "kNN-IAWS"]
     # initialize dict that holds computed value for each iteration to use in overall accuracy calculations
-    overall_err_vectors = {vk: np.empty((sample_size,)) for vk in vec_keys}
+    overall_err_vectors = { vk : np.empty((sample_size,)) for vk in vec_keys}
     ## overwrite "USER" key to hold list of tuples
     overall_err_vectors["USER"] = []
-
-    ## list containing dictionary for different accuracy studies
-    all_err_results = []
-
     for i in range(len(users)):
         ## add (user id, joke id) to list of users studied
         overall_err_vectors["USER"].append((users[i] + 1, jokes[i] + 1))
-
         ## assign predictions to i-th index of each prediction vector
         overall_err_vectors["ACTUAL"][i] = rawRatings[users[i], jokes[i]]
-
-        ## update overall i-th  value in each prediction vector
+        ## update overall_err_vectors i-th  value in each prediction vector
         ## collaborative predictors
         overall_err_vectors["CMU"][i] = coll_average(users[i], jokes[i])
         overall_err_vectors["CWS"][i] = coll_weighted_sum(users[i], jokes[i])
@@ -785,18 +795,9 @@ def reserved_set():
         overall_err_vectors["kNN-IAVG"][i] = nn_item_average(users[i], jokes[i])
         overall_err_vectors["kNN-IWS"][i] = nn_item_weighted(users[i], jokes[i])
         overall_err_vectors["kNN-IAWS"][i] = nn_item_adjusted(users[i], jokes[i])
-
         ## output error results for i-th element of sample
         output_individual_error(overall_err_vectors, i)
-
-    print("Performing Overall Accuracy Studies")
-    all_err_results.append(sse_overall(overall_err_vectors))
-    all_err_results.append(avg_sse_overall(overall_err_vectors))
-    all_err_results.append(threshold_accuracy(overall_err_vectors))
-    all_err_results.append(sentiment_accuracy(overall_err_vectors))
-
-    output_overall_accuracies(overall_err_vectors, all_err_results, vec_keys)
-    return overall_err_vectors, all_err_results, vec_keys
+    return overall_err_vectors, vec_keys
 
 
 def all_but_one():
@@ -807,7 +808,6 @@ def all_but_one():
     overall_err_vectors = { vk : np.zeros((NUM_USERS, NUM_JOKES)) for vk in vec_keys }
     ## list containing dictionary for different accuracy studies
     all_err_results = []
-
     # for i in range(rawRatings.shape[0]):
     for i in range(100):
         for j in range(rawRatings.shape[1]):
@@ -1098,7 +1098,9 @@ userActivity, rawRatings = load_ratings()
 
 #reserved_set(rawRatings)
 # all_but_one()
-reserved_set()
+err_vecs, vector_keys = reserved_set()
+overall_accuracy(err_vecs, vector_keys)
+
 # all_but_one()
 
 #avgs = avg_joke_ratings()
